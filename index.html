@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Animus Lecture AI - Multi-Chat Workspace</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background-color: #d1d7dc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* --- BACKGROUND GEOMETRIC SHAPES --- */
+    .bg-shape {
+      position: absolute;
+      z-index: -1;
+      pointer-events: none;
+    }
+    .shape-circle-pink {
+      top: 20px;
+      left: 30px;
+      width: 180px;
+      height: 180px;
+      background-color: #ff75a0;
+      border-radius: 50%;
+    }
+    .shape-rect-yellow {
+      top: 40px;
+      right: 50px;
+      width: 220px;
+      height: 120px;
+      background-color: #ffcc00;
+    }
+    .shape-square-pink {
+      top: 120px;
+      right: 230px;
+      width: 130px;
+      height: 130px;
+      background-color: #ff75a0;
+    }
+    .shape-arch-blue {
+      top: 220px;
+      right: 140px;
+      width: 100px;
+      height: 50px;
+      background-color: #0052ff;
+      border-top-left-radius: 100px;
+      border-top-right-radius: 100px;
+    }
+    .shape-square-green {
+      bottom: 30px;
+      left: 40px;
+      width: 140px;
+      height: 140px;
+      background-color: #00a86b;
+    }
+    .shape-bowl-blue {
+      bottom: 170px;
+      left: 40px;
+      width: 130px;
+      height: 65px;
+      background-color: #0052ff;
+      border-bottom-left-radius: 130px;
+      border-bottom-right-radius: 130px;
+    }
+    .shape-triangle-blue {
+      bottom: 0;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-left: 170px solid transparent;
+      border-bottom: 170px solid #0052ff;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 240px 1fr 1fr;
+      gap: 15px;
+      width: 1400px;
+      max-width: 100%;
+      height: 88vh;
+      z-index: 1;
+    }
+    .panel {
+      background: white;
+      border-radius: 20px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    h2 { margin-top: 0; font-size: 1.1rem; color: #333; display: flex; justify-content: space-between; align-items: center; }
+    .sidebar-list {
+      flex-grow: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .session-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #f8f9fa;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #495057;
+      border: 1px solid #e9ecef;
+    } 
+    .session-item:hover { background: #e9ecef; }
+    .session-item.active { background: #0052ff; color: white; border-color: #0052ff; font-weight: 600; }
+    .session-item.active .delete-btn { color: #ffcccc; }
+    .session-title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-grow: 1;
+    }
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #adb5bd;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .delete-btn:hover { background: rgba(0,0,0,0.1); color: #dc3545; }
+    .new-chat-btn {
+      background: #0052ff;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .new-chat-btn:hover { background: #0040cc; }
+    .notes-content {
+      flex-grow: 1;
+      overflow-y: auto;
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      border: 1px solid #e9ecef;
+    }
+    .notes-section { margin-bottom: 15px; }
+    .notes-section h3 { font-size: 0.9rem; color: #0052ff; margin-bottom: 5px; }
+    .message-area {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding-right: 5px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 14px;
+      border: 1px solid #e9ecef;
+      margin-bottom: 12px;
+    }
+    .ai-bubble, .user-bubble {
+      padding: 10px 14px;
+      border-radius: 14px;
+      max-width: 80%;
+      word-break: break-word;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .ai-bubble { background: #ffe3e8; color: #212529; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .user-bubble { background: #0052ff; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .input-group input {
+      flex-grow: 1;
+      padding: 10px 16px;
+      border-radius: 30px;
+      border: 1px solid #ced4da;
+      outline: none;
+      font-size: 0.95rem;
+    }
+    .btn {
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+    .mic-btn { background: #ffc107; color: #000; }
+    .mic-btn.recording { background: #dc3545; color: white; animation: pulse 1.5s infinite; }
+    .send-btn { background: #0052ff; color: white; }
+    .action-btns { display: flex; gap: 6px; }
+    .utility-btn {
+      background: #e9ecef;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-weight: 600;
+      color: #495057;
+    }
+    .utility-btn:hover { background: #dee2e6; }
+    .recording-status {
+      font-size: 0.8rem;
+      color: #dc3545;
+      font-weight: bold;
+      display: none;
+      align-items: center;
+      gap: 5px;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.08); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Background Geometric Shapes -->
+<div class="bg-shape shape-circle-pink"></div>
+<div class="bg-shape shape-rect-yellow"></div>
+<div class="bg-shape shape-square-pink"></div>
+<div class="bg-shape shape-arch-blue"></div>
+<div class="bg-shape shape-bowl-blue"></div>
+<div class="bg-shape shape-square-green"></div>
+<div class="bg-shape shape-triangle-blue"></div>
+
+<div class="workspace">
+  <!-- Panel 1: Chat Sessions Sidebar -->
+  <div class="panel">
+    <h2>💬 Chats</h2>
+    <div class="sidebar-list" id="sessionList"></div>
+    <button class="new-chat-btn" id="newChatBtn">+ New Chat</button>
+  </div>
+
+  <!-- Panel 2: Lecture Notes Studio -->
+  <div class="panel">
+    <h2>
+      <span>📚 Lecture Studio</span>
+      <div class="action-btns">
+        <button class="utility-btn" id="copyBtn">📋 Copy</button>
+        <button class="utility-btn" id="exportBtn">💾 Export</button>
+      </div>
+    </h2>
+    <div class="notes-content" id="notesArea">
+     <div class="notes-section">
+        <h3>AI Summary & Key Takeaways</h3>
+        <div id="summaryDisplay">No lecture analyzed yet. Click record and stop when finished!</div>
+      </div>
+      <hr style="border:0; border-top:1px solid #dee2e6; margin: 12px 0;">
+      <div class="notes-section">
+        <h3>Live / Raw Transcript</h3>
+        <div id="transcriptDisplay" style="color: #6c757d; font-style: italic;">Real-time transcript and uploaded transcript will appear here...</div>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 5px;">
+      <div class="recording-status" id="recStatus">
+        🔴 <span id="timer">00:00</span>
+      </div>
+      <button class="btn mic-btn" id="recordBtn" onclick="toggleRecording()" title="Record Lecture">🎤</button>
+    </div>
+  </div>
+
+  <!-- Panel 3: Active Chat Workspace -->
+  <div class="panel">
+    <h2 id="activeChatTitle">Chat Workspace</h2>
+    <div class="message-area" id="chatArea">
+      <div class="ai-bubble">Hello! Select or create a chat session on the left to get started.</div>
+    </div>
+    <div class="input-group">
+      <input type="text" placeholder="Ask about lecture or anything..." id="textInput">
+      <button class="btn send-btn" id="sendBtn" title="Send message">➔</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentSessionId = null;
+  let sessions = {};
+
+  let mediaRecorder;
+  let audioChunks = [];
+  let isRecording = false;
+  let timerInterval;
+  let secondsElapsed = 0;
+  let recognition = null;
+  let liveTranscriptText = "";
+
+  // Initialize Speech Recognition if supported
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      let interimText = "";
+      let finalSegments = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalSegments += event.results[i][0].transcript + " ";
+        } else {
+          interimText += event.results[i][0].transcript;
+        }
+      }
+      if (finalSegments) { liveTranscriptText += finalSegments; }
+      const transcriptDisplay = document.getElementById('transcriptDisplay');
+      if (transcriptDisplay) {
+        transcriptDisplay.style.color = "#212529";
+        transcriptDisplay.style.fontStyle = "normal";
+        transcriptDisplay.innerText = liveTranscriptText + (interimText ? " [" + interimText + "]" : "");
+      }
+    };
+
+    recognition.onend = () => {
+      if (isRecording) {
+        try { recognition.start(); } catch (e) {}
+      }
+    };
+  }
+
+  // Event Delegation for other buttons
+  document.addEventListener('click', (e) => {
+    const target = e.target;
+    if (target.id === 'sendBtn' || target.closest('#sendBtn')) handleSend();
+    else if (target.id === 'newChatBtn' || target.closest('#newChatBtn')) createNewSession();
+    else if (target.id === 'copyBtn' || target.closest('#copyBtn')) copyNotes();
+    else if (target.id === 'exportBtn' || target.closest('#exportBtn')) exportNotes();
+  });
+
+  document.addEventListener('keypress', (e) => {
+    if (e.target.id === 'textInput' && e.key === 'Enter') handleSend();
+  });
+
+  async function fetchSessions() {
+    try {
+      const res = await fetch('/sessions');
+      sessions = await res.json();
+      renderSessionList();
+      if (!currentSessionId && Object.keys(sessions).length > 0) {
+        switchSession(Object.keys(sessions)[0]);
+      } else if (Object.keys(sessions).length === 0) {
+        createNewSession();
+      }
+    } catch (err) {
+      console.error("Failed to fetch sessions:", err);
+    }
+  }
+
+  function renderSessionList() {
+    const sessionList = document.getElementById('sessionList');
+    if (!sessionList) return;
+    sessionList.innerHTML = '';
+    
+    for (const [id, session] of Object.entries(sessions)) {
+      const div = document.createElement('div');
+      div.className = `session-item ${id === currentSessionId ? 'active' : ''}`;
+
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'session-title';
+      titleSpan.innerText = session.title;
+      titleSpan.onclick = () => switchSession(id);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.innerHTML = '✕';
+      deleteBtn.title = 'Delete chat';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteSession(id);
+      };
+
+      div.appendChild(titleSpan);
+      div.appendChild(deleteBtn);
+      sessionList.appendChild(div);
+    }
+  }
+
+  async function createNewSession() {
+    const title = prompt("Enter chat title:", "New Study Chat");
+    if (!title) return;
+
+    try {
+      const res = await fetch('/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      });
+      const data = await res.json();
+      sessions[data.session_id] = { title: data.title, messages: [] };
+      switchSession(data.session_id);
+      renderSessionList();
+    } catch (err) {
+      console.error("Error creating session:", err);
+    }
+  }
+
+  async function deleteSession(id) {
+    if (!confirm("Are you sure you want to delete this chat?")) return;
+
+    try {
+      const res = await fetch(`/sessions/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        delete sessions[id];
+        const remainingIds = Object.keys(sessions);
+        if (remainingIds.length > 0) {
+          switchSession(remainingIds[0]);
+        } else {
+          createNewSession();
+        }
+        renderSessionList();
+      } else {
+        alert("Failed to delete session on server.");
+      }
+    } catch (err) {
+      console.error("Error deleting session:", err);
+    }
+  }
+
+  function appendBubble(text, isUser, isMarkdown = false) {
+    const chatArea = document.getElementById('chatArea');
+    if (!chatArea) return;
+    const bubble = document.createElement('div');
+    bubble.className = isUser ? 'user-bubble' : 'ai-bubble';
+    if (isMarkdown && !isUser && window.marked) {
+      bubble.innerHTML = marked.parse(text);
+    } else {
+      bubble.innerText = text;
+    }
+    chatArea.appendChild(bubble);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    return bubble;
+  }
+
+  function switchSession(id) {
+    currentSessionId = id;
+    const activeChatTitle = document.getElementById('activeChatTitle');
+    if (activeChatTitle) {
+      activeChatTitle.innerText = sessions[id] ? sessions[id].title : "Chat Workspace";
+    }
+    renderSessionList();
+
+    const chatArea = document.getElementById('chatArea');
+    if (!chatArea) return;
+    chatArea.innerHTML = '';
+    
+    if (!sessions[id]) return;
+    const msgs = sessions[id].messages;
+    if (msgs.length === 0) {
+      appendBubble("Hello! Ask me any questions or record a lecture.", false);
+    } else {
+      msgs.forEach(m => {
+        const isUserMessage = m.isUser === true || m.is_user === true;
+        const isMarkdownMsg = m.isMarkdown === true || m.is_markdown === true;
+        appendBubble(m.text, isUserMessage, isMarkdownMsg);
+      });
+    }
+  }
+
+  async function handleSend() {
+    const textInput = document.getElementById('textInput');
+    const chatArea = document.getElementById('chatArea');
+    if (!textInput || !chatArea) return;
+
+    const message = textInput.value.trim();
+    if (!message || !currentSessionId) return;
+
+    appendBubble(message, true);
+    sessions[currentSessionId].messages.push({ text: message, isUser: true, isMarkdown: false });
+    textInput.value = '';
+
+    const thinking = appendBubble("Animus is thinking...", false);
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: currentSessionId, user_message: message })
+      });
+      const data = await res.json();
+      if (thinking) chatArea.removeChild(thinking);
+
+      appendBubble(data.response, false, true);
+      sessions[currentSessionId].messages.push({ text: data.response, isUser: false, isMarkdown: true });
+    } catch (err) {
+      if (thinking) chatArea.removeChild(thinking);
+      appendBubble("Error communicating with backend.", false);
+    }
+  }
+
+  function startTimer() {
+    const timerDisplay = document.getElementById('timer');
+    const recStatus = document.getElementById('recStatus');
+    if (!timerDisplay || !recStatus) return;
+
+    secondsElapsed = 0;
+    timerDisplay.innerText = "00:00";
+    recStatus.style.display = "flex";
+    timerInterval = setInterval(() => {
+      secondsElapsed++;
+      const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+      const secs = String(secondsElapsed % 60).padStart(2, '0');
+      timerDisplay.innerText = mins + ":" + secs;
+    }, 1000);
+  }
+
+  function stopTimer() {
+    const recStatus = document.getElementById('recStatus');
+    clearInterval(timerInterval);
+    if (recStatus) recStatus.style.display = "none";
+  }
+
+  async function toggleRecording() {
+    console.log("Toggle recording clicked!");
+    const recordBtn = document.getElementById('recordBtn');
+    const summaryDisplay = document.getElementById('summaryDisplay');
+    const transcriptDisplay = document.getElementById('transcriptDisplay');
+
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        liveTranscriptText = "";
+        if (transcriptDisplay) {
+          transcriptDisplay.innerText = "Listening in real-time...";
+          transcriptDisplay.style.color = "#6c757d";
+          transcriptDisplay.style.fontStyle = "italic";
+        }
+
+        mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          if (summaryDisplay) summaryDisplay.innerHTML = "✨ Generating comprehensive AI summary...";
+
+          const formData = new FormData();
+          formData.append("file", audioBlob, "lecture.webm");
+
+          try {
+            const res = await fetch("/upload-audio", { method: "POST", body: formData });
+            const data = await res.json();
+            console.log("Server response data:", data);
+            if (res.ok) {
+              if (summaryDisplay && window.marked) summaryDisplay.innerHTML = marked.parse(data.summary);
+              if (data.transcript && transcriptDisplay) {
+                transcriptDisplay.innerText = data.transcript;
+                transcriptDisplay.style.fontStyle = "normal";
+                transcriptDisplay.style.color = "#212529";
+              }
+              appendBubble("✨ Lecture processed and summarized!", false);
+            } else {
+              if (summaryDisplay) summaryDisplay.innerHTML = "Server Error: " + (data.detail || 'Unknown');
+            }
+          } catch (error) {
+            console.error("Upload error:", error);
+            if (summaryDisplay) summaryDisplay.innerHTML = "Error processing recording.";
+          }
+        };
+
+        mediaRecorder.start();
+        if (recognition) { try { recognition.start(); } catch (e) {} }
+        isRecording = true;
+        if (recordBtn) {
+          recordBtn.classList.add('recording');
+          recordBtn.innerText = "⏹️";
+        }
+        startTimer();
+      } catch (err) {
+        alert("Microphone access denied.");
+      }
+    } else {
+      mediaRecorder.stop();
+      if (recognition) { try { recognition.stop(); } catch (e) {} }
+      isRecording = false;
+      if (recordBtn) {
+        recordBtn.classList.remove('recording');
+        recordBtn.innerText = "🎤";
+      }
+      stopTimer();
+    }
+  }
+
+  function copyNotes() {
+    const summaryDisplay = document.getElementById('summaryDisplay');
+    const transcriptDisplay = document.getElementById('transcriptDisplay');
+    if (!summaryDisplay || !transcriptDisplay) return;
+
+    navigator.clipboard.writeText("SUMMARY:\n" + summaryDisplay.innerText + "\n\nTRANSCRIPT:\n" + transcriptDisplay.innerText);
+    alert("Notes copied!");
+  }
+
+  function exportNotes() {
+    const summaryDisplay = document.getElementById('summaryDisplay');
+    const transcriptDisplay = document.getElementById('transcriptDisplay');
+    if (!summaryDisplay || !transcriptDisplay) return;
+
+    const content = "# Animus Lecture Notes\n\n## Summary\n" + summaryDisplay.innerText + "\n\n## Transcript\n" + transcriptDisplay.innerText;
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'animus-notes.md';
+    a.click();
+  }
+
+  // Load sessions on startup
+  fetchSessions();
+</script>
+</body>
+</html>
