@@ -84,7 +84,7 @@ async def upload_audio(file: UploadFile = File(...)):
         transcript_text = transcription_obj if isinstance(transcription_obj, str) else getattr(transcription_obj, "text", str(transcription_obj))
         print("Transcription successful!")
 
-        # 2. Summarize the transcript using GPT-OSS 20B on Groq
+        # 2. Summarize the transcript using Llama 3 8B on Groq
         chat_completion = client.chat.completions.create(
             messages=[
                 {
@@ -96,7 +96,7 @@ async def upload_audio(file: UploadFile = File(...)):
                     "content": f"Please summarize the following transcript into clear key takeaways and bullet points:\n\n{transcript_text}"
                 }
             ],
-            model="openai/gpt-oss-20b",
+            model="llama3-8b-8192",
         )
         summary_text = chat_completion.choices[0].message.content
 
@@ -126,7 +126,7 @@ def chat_with_session(data: ChatMessage):
                 {"role": "system", "content": "You are Animus, a helpful AI assistant."},
                 {"role": "user", "content": data.user_message}
             ],
-            model="openai/gpt-oss-20b",
+            model="llama3-8b-8192",
         )
         ai_reply = chat_completion.choices[0].message.content
     except Exception as e:
