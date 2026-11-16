@@ -17,8 +17,8 @@ app.add_middleware(
 )
 
 # Pull keys securely from Render's Environment Variables
-groq_client = Groq(api_key=os.environ.get("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"))
-gemini_client = genai.Client(api_key=os.environ.get("AQ.Ab8RN6LcOtIiF24ja9n3m7CO0giiV9fBSDH1U3zT4A9Dddb7Bg"))
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 class ChatRequest(BaseModel):
     prompt: str
