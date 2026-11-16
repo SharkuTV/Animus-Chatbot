@@ -3,35 +3,43 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from groq import Groq
+from google import genai
 
 app = FastAPI()
 
-# Enable CORS so your GitHub Pages frontend can talk to this backend
+# Allow your GitHub Pages frontend to communicate with this backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Or specify your GitHub Pages URL here
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize Groq client (pulls GROQ_API_KEY from environment variables)
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+# Pull keys securely from Render's Environment Variables
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 class ChatRequest(BaseModel):
     prompt: str
+    provider: str = "groq"  # Defaults to Groq; can also pass "gemini"
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     try:
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # Updated active Groq model
-            messages=[
-                {"role": "user", "content": request.prompt}
-            ],
-            temperature=0.7,
-        )
-        return {"response": completion.choices[0].message.content}
+        if request.provider == "gemini":
+            response = gemini_client.models.generate_content(
+                model="gemini-3.6-flash",
+                contents=request.prompt,
+            )
+            return {"response": response.text}
+        else:
+            completion = groq_client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": request.prompt}],
+                temperature=0.7,
+            )
+            return {"response": completion.choices[0].message.content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
