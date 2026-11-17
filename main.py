@@ -20,7 +20,10 @@ app.add_middleware(
 
 # Pull keys securely from Render's Environment Variables
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+gemini_client = genai.Client(
+    api_key=os.environ.get("GEMINI_API_KEY"),
+    vertexai=True,
+)
 
 # In-memory storage for chat sessions and latest lecture transcript
 sessions_db = {}
