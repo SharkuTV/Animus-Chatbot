@@ -1,7 +1,7 @@
 import os
 import uuid
 import tempfile
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -17,19 +17,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pull Groq key securely from Render's Environment Variables
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-# In-memory storage for chat sessions and latest lecture transcript
-sessions_db = {}
-latest_transcript = ""
+# Partitioned storage per user_id:
+# users_db[user_id] = {"sessions": {}, "latest_transcript": ""}
+users_db = {}
+
+
+def get_user_store(user_id: str):
+    if user_id not in users_db:
+        users_db[user_id] = {
+            "sessions": {},
+            "latest_transcript": "",
+        }
+    return users_db[user_id]
 
 
 class CreateSessionRequest(BaseModel):
+    user_id: str
     title: str
 
 
 class ChatMessageRequest(BaseModel):
+    user_id: str
     session_id: str
     user_message: str
 
@@ -42,14 +52,16 @@ def serve_frontend():
 
 
 @app.get("/sessions")
-def get_sessions():
-    return sessions_db
+def get_sessions(user_id: str):
+    store = get_user_store(user_id)
+    return store["sessions"]
 
 
 @app.post("/sessions")
 def create_session(req: CreateSessionRequest):
+    store = get_user_store(req.user_id)
     session_id = str(uuid.uuid4())
-    sessions_db[session_id] = {
+    store["sessions"][session_id] = {
         "title": req.title,
         "messages": [],
     }
@@ -57,28 +69,30 @@ def create_session(req: CreateSessionRequest):
 
 
 @app.delete("/sessions/{session_id}")
-def delete_session(session_id: str):
-    if session_id in sessions_db:
-        del sessions_db[session_id]
+def delete_session(session_id: str, user_id: str):
+    store = get_user_store(user_id)
+    if session_id in store["sessions"]:
+        del store["sessions"][session_id]
         return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Session not found")
 
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatMessageRequest):
-    # Auto-create session if server restarted and wiped in-memory storage
-    if req.session_id not in sessions_db:
-        sessions_db[req.session_id] = {
+    store = get_user_store(req.user_id)
+
+    if req.session_id not in store["sessions"]:
+        store["sessions"][req.session_id] = {
             "title": "Restored Study Chat",
             "messages": [],
         }
 
-    session = sessions_db[req.session_id]
+    session = store["sessions"][req.session_id]
     session["messages"].append({"text": req.user_message, "isUser": True, "isMarkdown": False})
 
     system_prompt = "You are Animus, a helpful AI study and lecture assistant."
-    if latest_transcript:
-        system_prompt += f"\n\nUse the following recorded lecture transcript as context when answering questions:\n{latest_transcript}"
+    if store["latest_transcript"]:
+        system_prompt += f"\n\nUse the following recorded lecture transcript as context when answering questions:\n{store['latest_transcript']}"
 
     chat_history = [{"role": "system", "content": system_prompt}]
     for m in session["messages"]:
@@ -99,8 +113,8 @@ async def chat_endpoint(req: ChatMessageRequest):
 
 
 @app.post("/upload-audio")
-async def upload_audio(file: UploadFile = File(...)):
-    global latest_transcript
+async def upload_audio(file: UploadFile = File(...), user_id: str = Form(...)):
+    store = get_user_store(user_id)
     temp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
@@ -115,7 +129,7 @@ async def upload_audio(file: UploadFile = File(...)):
                 model="whisper-large-v3-turbo",
             )
         transcript_text = transcription.text.strip()
-        latest_transcript = transcript_text
+        store["latest_transcript"] = transcript_text
 
         if not transcript_text:
             return {
