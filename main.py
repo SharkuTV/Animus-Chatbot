@@ -20,7 +20,8 @@ app.add_middleware(
 
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-# Partitioned in-memory cache per user_id
+# Partitioned in-memory cache per user_id:
+# users_db[user_id] = {"sessions": {session_id: {"title": ..., "messages": [...], "transcript": ""}}}
 users_db = {}
 
 
@@ -28,9 +29,18 @@ def get_user_store(user_id: str):
     if user_id not in users_db:
         users_db[user_id] = {
             "sessions": {},
-            "latest_transcript": "",
         }
     return users_db[user_id]
+
+
+def ensure_session(store: dict, session_id: str, title: str = "Restored Study Chat"):
+    if session_id not in store["sessions"]:
+        store["sessions"][session_id] = {
+            "title": title,
+            "messages": [],
+            "transcript": "",
+        }
+    return store["sessions"][session_id]
 
 
 class CreateSessionRequest(BaseModel):
@@ -66,6 +76,7 @@ def create_session(req: CreateSessionRequest):
     store["sessions"][session_id] = {
         "title": req.title,
         "messages": [],
+        "transcript": "",
     }
     return {"session_id": session_id, "title": req.title}
 
@@ -82,18 +93,12 @@ def delete_session(session_id: str, user_id: str):
 @app.post("/chat")
 async def chat_endpoint(req: ChatMessageRequest):
     store = get_user_store(req.user_id)
+    session = ensure_session(store, req.session_id)
 
-    # Restore transcript context from browser localStorage if server restarted
-    if req.transcript_context:
-        store["latest_transcript"] = req.transcript_context
+    # Restore transcript context specific to THIS session if server restarted
+    if req.transcript_context is not None:
+        session["transcript"] = req.transcript_context
 
-    if req.session_id not in store["sessions"]:
-        store["sessions"][req.session_id] = {
-            "title": "Restored Study Chat",
-            "messages": req.history if req.history else [],
-        }
-
-    session = store["sessions"][req.session_id]
     if req.history:
         session["messages"] = req.history
     else:
@@ -104,10 +109,10 @@ async def chat_endpoint(req: ChatMessageRequest):
         "If the user asks to be quizzed, ask 1 to 3 clear questions at a time, wait for their answer, "
         "and grade/explain their response constructively."
     )
-    if store["latest_transcript"]:
+    if session.get("transcript"):
         system_prompt += (
-            "\n\nUse the following recorded lecture transcript as context when answering questions "
-            f"or quizzing the student:\n{store['latest_transcript']}"
+            "\n\nUse the following recorded lecture transcript from this chat session as context "
+            f"when answering questions or quizzing the student:\n{session['transcript']}"
         )
 
     chat_history = [{"role": "system", "content": system_prompt}]
@@ -132,9 +137,11 @@ async def chat_endpoint(req: ChatMessageRequest):
 async def upload_audio(
     file: UploadFile = File(...),
     user_id: str = Form(...),
+    session_id: str = Form(...),
     bookmarks: str = Form(""),
 ):
     store = get_user_store(user_id)
+    session = ensure_session(store, session_id)
     temp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
@@ -149,7 +156,7 @@ async def upload_audio(
                 model="whisper-large-v3-turbo",
             )
         transcript_text = transcription.text.strip()
-        store["latest_transcript"] = transcript_text
+        session["transcript"] = transcript_text
 
         if not transcript_text:
             return {
