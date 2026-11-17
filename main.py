@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from groq import Groq
-from google import genai
 
 app = FastAPI()
 
@@ -18,12 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pull keys securely from Render's Environment Variables
+# Pull Groq key securely from Render's Environment Variables
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-gemini_client = genai.Client(
-    api_key=os.environ.get("GEMINI_API_KEY"),
-    vertexai=True,
-)
 
 # In-memory storage for chat sessions and latest lecture transcript
 sessions_db = {}
@@ -71,13 +66,16 @@ def delete_session(session_id: str):
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatMessageRequest):
+    # Auto-create session if server restarted and wiped in-memory storage
     if req.session_id not in sessions_db:
-        raise HTTPException(status_code=404, detail="Session not found")
+        sessions_db[req.session_id] = {
+            "title": "Restored Study Chat",
+            "messages": [],
+        }
 
     session = sessions_db[req.session_id]
     session["messages"].append({"text": req.user_message, "isUser": True, "isMarkdown": False})
 
-    # Build conversation history with lecture context if available
     system_prompt = "You are Animus, a helpful AI study and lecture assistant."
     if latest_transcript:
         system_prompt += f"\n\nUse the following recorded lecture transcript as context when answering questions:\n{latest_transcript}"
@@ -105,7 +103,6 @@ async def upload_audio(file: UploadFile = File(...)):
     global latest_transcript
     temp_path = None
     try:
-        # Save uploaded audio temporarily for Groq Whisper
         with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
             content = await file.read()
             temp_audio.write(content)
@@ -126,20 +123,21 @@ async def upload_audio(file: UploadFile = File(...)):
                 "summary": "No speech was detected in the recording.",
             }
 
-        # 2. Summarize transcript with Gemini
+        # 2. Summarize transcript with Groq Llama 3.3 70B
         summary_prompt = (
             "Summarize the following lecture transcript clearly using Markdown headings, "
             "bullet points, and a section for Key Takeaways:\n\n"
             f"{transcript_text}"
         )
-        summary_response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=summary_prompt,
+        summary_completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": summary_prompt}],
+            temperature=0.5,
         )
 
         return {
             "transcript": transcript_text,
-            "summary": summary_response.text,
+            "summary": summary_completion.choices[0].message.content,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
