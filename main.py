@@ -1,6 +1,7 @@
 import os
 import uuid
 import tempfile
+from typing import Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -19,8 +20,7 @@ app.add_middleware(
 
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-# Partitioned storage per user_id:
-# users_db[user_id] = {"sessions": {}, "latest_transcript": ""}
+# Partitioned in-memory cache per user_id
 users_db = {}
 
 
@@ -42,6 +42,8 @@ class ChatMessageRequest(BaseModel):
     user_id: str
     session_id: str
     user_message: str
+    transcript_context: Optional[str] = None
+    history: Optional[list] = None
 
 
 @app.get("/")
@@ -81,18 +83,32 @@ def delete_session(session_id: str, user_id: str):
 async def chat_endpoint(req: ChatMessageRequest):
     store = get_user_store(req.user_id)
 
+    # Restore transcript context from browser localStorage if server restarted
+    if req.transcript_context:
+        store["latest_transcript"] = req.transcript_context
+
     if req.session_id not in store["sessions"]:
         store["sessions"][req.session_id] = {
             "title": "Restored Study Chat",
-            "messages": [],
+            "messages": req.history if req.history else [],
         }
 
     session = store["sessions"][req.session_id]
-    session["messages"].append({"text": req.user_message, "isUser": True, "isMarkdown": False})
+    if req.history:
+        session["messages"] = req.history
+    else:
+        session["messages"].append({"text": req.user_message, "isUser": True, "isMarkdown": False})
 
-    system_prompt = "You are Animus, a helpful AI study and lecture assistant."
+    system_prompt = (
+        "You are Animus, an encouraging, clear, and interactive AI study and lecture assistant. "
+        "If the user asks to be quizzed, ask 1 to 3 clear questions at a time, wait for their answer, "
+        "and grade/explain their response constructively."
+    )
     if store["latest_transcript"]:
-        system_prompt += f"\n\nUse the following recorded lecture transcript as context when answering questions:\n{store['latest_transcript']}"
+        system_prompt += (
+            "\n\nUse the following recorded lecture transcript as context when answering questions "
+            f"or quizzing the student:\n{store['latest_transcript']}"
+        )
 
     chat_history = [{"role": "system", "content": system_prompt}]
     for m in session["messages"]:
@@ -113,7 +129,11 @@ async def chat_endpoint(req: ChatMessageRequest):
 
 
 @app.post("/upload-audio")
-async def upload_audio(file: UploadFile = File(...), user_id: str = Form(...)):
+async def upload_audio(
+    file: UploadFile = File(...),
+    user_id: str = Form(...),
+    bookmarks: str = Form(""),
+):
     store = get_user_store(user_id)
     temp_path = None
     try:
@@ -137,11 +157,19 @@ async def upload_audio(file: UploadFile = File(...), user_id: str = Form(...)):
                 "summary": "No speech was detected in the recording.",
             }
 
-        # 2. Summarize transcript with Groq GPT-OSS 120B
+        # 2. Summarize transcript (highlighting any flagged timestamps)
+        bookmark_instruction = ""
+        if bookmarks.strip():
+            bookmark_instruction = (
+                f"\n\nIMPORTANT: During the lecture, the student flagged these timestamps as confusing: {bookmarks}. "
+                "Include a dedicated '🚩 Flagged Moments Clarified' section that breaks down the concepts discussed "
+                "around those points in simple, easy-to-understand language."
+            )
+
         summary_prompt = (
             "Summarize the following lecture transcript clearly using Markdown headings, "
-            "bullet points, and a section for Key Takeaways:\n\n"
-            f"{transcript_text}"
+            "bullet points, and a section for Key Takeaways."
+            f"{bookmark_instruction}\n\nTranscript:\n{transcript_text}"
         )
         summary_completion = groq_client.chat.completions.create(
             model="openai/gpt-oss-120b",
