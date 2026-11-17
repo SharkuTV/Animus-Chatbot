@@ -87,7 +87,7 @@ async def chat_endpoint(req: ChatMessageRequest):
 
     try:
         completion = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="openai/gpt-oss-20b",
             messages=chat_history,
             temperature=0.7,
         )
@@ -95,7 +95,7 @@ async def chat_endpoint(req: ChatMessageRequest):
         session["messages"].append({"text": reply, "isUser": False, "isMarkdown": True})
         return {"response": reply}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"response": f"⚠️ Server Error: {str(e)}"}
 
 
 @app.post("/upload-audio")
@@ -123,14 +123,14 @@ async def upload_audio(file: UploadFile = File(...)):
                 "summary": "No speech was detected in the recording.",
             }
 
-        # 2. Summarize transcript with Groq Llama 3.3 70B
+        # 2. Summarize transcript with Groq GPT-OSS 120B
         summary_prompt = (
             "Summarize the following lecture transcript clearly using Markdown headings, "
             "bullet points, and a section for Key Takeaways:\n\n"
             f"{transcript_text}"
         )
         summary_completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[{"role": "user", "content": summary_prompt}],
             temperature=0.5,
         )
