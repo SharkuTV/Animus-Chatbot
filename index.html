@@ -373,15 +373,9 @@
 
   // Storage Keys
   const STORAGE_SESSIONS_KEY = `animus_sessions_${userId}`;
-  const STORAGE_NOTES_KEY = `animus_notes_${userId}`;
 
   let currentSessionId = null;
   let sessions = {};
-  let currentNotes = {
-    summaryHtml: "No lecture analyzed yet. Click record and stop when finished!",
-    transcript: "",
-    bookmarks: []
-  };
 
   let mediaRecorder;
   let audioChunks = [];
@@ -393,10 +387,24 @@
   let liveTranscriptText = "";
   let sessionBookmarks = [];
 
+  function defaultNotes() {
+    return {
+      summaryHtml: "No lecture analyzed yet. Click record and stop when finished!",
+      transcript: "",
+      bookmarks: []
+    };
+  }
+
+  function ensureSessionNotes(session) {
+    if (!session.notes) {
+      session.notes = defaultNotes();
+    }
+    return session.notes;
+  }
+
   function saveToLocalStorage() {
     try {
       localStorage.setItem(STORAGE_SESSIONS_KEY, JSON.stringify(sessions));
-      localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(currentNotes));
     } catch (e) {
       console.error("Failed to save to localStorage:", e);
     }
@@ -407,29 +415,37 @@
       const savedSessions = localStorage.getItem(STORAGE_SESSIONS_KEY);
       if (savedSessions) {
         sessions = JSON.parse(savedSessions);
+        for (const id of Object.keys(sessions)) {
+          ensureSessionNotes(sessions[id]);
+        }
       }
-      const savedNotes = localStorage.getItem(STORAGE_NOTES_KEY);
-      if (savedNotes) {
-        currentNotes = JSON.parse(savedNotes);
-        restoreNotesUI();
-      }
+      // Clean up legacy global notes key so old notes don't bleed across sessions
+      localStorage.removeItem(`animus_notes_${userId}`);
     } catch (e) {
       console.error("Failed to load from localStorage:", e);
     }
   }
 
-  function restoreNotesUI() {
+  function renderNotesForSession(session) {
     const summaryDisplay = document.getElementById('summaryDisplay');
     const transcriptDisplay = document.getElementById('transcriptDisplay');
-    if (summaryDisplay && currentNotes.summaryHtml) {
-      summaryDisplay.innerHTML = currentNotes.summaryHtml;
+    const notes = session ? ensureSessionNotes(session) : defaultNotes();
+
+    if (summaryDisplay) {
+      summaryDisplay.innerHTML = notes.summaryHtml || "No lecture analyzed yet. Click record and stop when finished!";
     }
-    if (transcriptDisplay && currentNotes.transcript) {
-      transcriptDisplay.innerText = currentNotes.transcript;
-      transcriptDisplay.style.color = "#212529";
-      transcriptDisplay.style.fontStyle = "normal";
+    if (transcriptDisplay) {
+      if (notes.transcript) {
+        transcriptDisplay.innerText = notes.transcript;
+        transcriptDisplay.style.color = "#212529";
+        transcriptDisplay.style.fontStyle = "normal";
+      } else {
+        transcriptDisplay.innerText = "Real-time transcript and uploaded transcript will appear here...";
+        transcriptDisplay.style.color = "#6c757d";
+        transcriptDisplay.style.fontStyle = "italic";
+      }
     }
-    renderBookmarksUI(currentNotes.bookmarks || []);
+    renderBookmarksUI(notes.bookmarks || []);
   }
 
   function renderBookmarksUI(bookmarks) {
@@ -499,8 +515,15 @@
     try {
       const res = await fetch(`/sessions?user_id=${encodeURIComponent(userId)}`);
       const serverSessions = await res.json();
-      // Merge server sessions with localStorage sessions so nothing is lost
-      sessions = { ...serverSessions, ...sessions };
+      for (const [id, s] of Object.entries(serverSessions)) {
+        if (!sessions[id]) {
+          sessions[id] = {
+            title: s.title,
+            messages: s.messages || [],
+            notes: defaultNotes()
+          };
+        }
+      }
       saveToLocalStorage();
     } catch (err) {
       console.error("Failed to fetch server sessions, using local storage:", err);
@@ -545,6 +568,10 @@
   }
 
   async function createNewSession(isDefault = false) {
+    if (isRecording) {
+      alert("Please stop your current lecture recording before creating a new chat.");
+      return;
+    }
     const title = isDefault ? "Study Session 1" : prompt("Enter chat title:", "New Study Chat");
     if (!title) return;
 
@@ -555,14 +582,13 @@
         body: JSON.stringify({ user_id: userId, title })
       });
       const data = await res.json();
-      sessions[data.session_id] = { title: data.title, messages: [] };
+      sessions[data.session_id] = { title: data.title, messages: [], notes: defaultNotes() };
       saveToLocalStorage();
       switchSession(data.session_id);
       renderSessionList();
     } catch (err) {
-      // Fallback offline creation if server is waking up
       const fallbackId = 'local_' + Date.now();
-      sessions[fallbackId] = { title, messages: [] };
+      sessions[fallbackId] = { title, messages: [], notes: defaultNotes() };
       saveToLocalStorage();
       switchSession(fallbackId);
       renderSessionList();
@@ -605,12 +631,19 @@
   }
 
   function switchSession(id) {
+    if (isRecording && id !== currentSessionId) {
+      alert("Please stop your current lecture recording before switching chats.");
+      return;
+    }
     currentSessionId = id;
     const activeChatTitle = document.getElementById('activeChatTitle');
     if (activeChatTitle) {
       activeChatTitle.innerText = sessions[id] ? sessions[id].title : "Chat Workspace";
     }
     renderSessionList();
+
+    // Load the lecture notes belonging strictly to this chat session
+    renderNotesForSession(sessions[id]);
 
     const chatArea = document.getElementById('chatArea');
     if (!chatArea) return;
@@ -632,9 +665,11 @@
   async function sendMessageText(message) {
     if (!message || !currentSessionId) return;
     const chatArea = document.getElementById('chatArea');
+    const activeSession = sessions[currentSessionId];
+    const sessionNotes = ensureSessionNotes(activeSession);
 
     appendBubble(message, true);
-    sessions[currentSessionId].messages.push({ text: message, isUser: true, isMarkdown: false });
+    activeSession.messages.push({ text: message, isUser: true, isMarkdown: false });
     saveToLocalStorage();
 
     const thinking = appendBubble("Animus is thinking...", false);
@@ -647,15 +682,15 @@
           user_id: userId,
           session_id: currentSessionId,
           user_message: message,
-          transcript_context: currentNotes.transcript || "",
-          history: sessions[currentSessionId].messages
+          transcript_context: sessionNotes.transcript || "",
+          history: activeSession.messages
         })
       });
       const data = await res.json();
       if (thinking) chatArea.removeChild(thinking);
 
       appendBubble(data.response, false, true);
-      sessions[currentSessionId].messages.push({ text: data.response, isUser: false, isMarkdown: true });
+      activeSession.messages.push({ text: data.response, isUser: false, isMarkdown: true });
       saveToLocalStorage();
     } catch (err) {
       if (thinking) chatArea.removeChild(thinking);
@@ -673,8 +708,10 @@
   }
 
   function triggerQuizMode() {
-    if (!currentNotes.transcript) {
-      alert("Record a lecture first so Animus has notes to quiz you on!");
+    const activeSession = sessions[currentSessionId];
+    const sessionNotes = activeSession ? ensureSessionNotes(activeSession) : defaultNotes();
+    if (!sessionNotes.transcript) {
+      alert("Record a lecture in this chat first so Animus has notes to quiz you on!");
       return;
     }
     sendMessageText("🧠 Quiz me on this lecture! Ask me 2 practice questions (one multiple choice and one short answer) and wait for my reply before grading me.");
@@ -756,6 +793,7 @@
     const transcriptDisplay = document.getElementById('transcriptDisplay');
 
     if (!isRecording) {
+      const targetSessionId = currentSessionId;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
@@ -783,6 +821,7 @@
           const formData = new FormData();
           formData.append("file", audioBlob, "lecture.webm");
           formData.append("user_id", userId);
+          formData.append("session_id", targetSessionId);
           formData.append("bookmarks", sessionBookmarks.join(", "));
 
           try {
@@ -790,22 +829,26 @@
             const data = await res.json();
             if (res.ok) {
               const parsedSummary = window.marked ? marked.parse(data.summary) : data.summary;
-              if (summaryDisplay) summaryDisplay.innerHTML = parsedSummary;
-              if (data.transcript && transcriptDisplay) {
-                transcriptDisplay.innerText = data.transcript;
-                transcriptDisplay.style.fontStyle = "normal";
-                transcriptDisplay.style.color = "#212529";
+
+              // Save notes directly to the session that recorded them
+              if (sessions[targetSessionId]) {
+                sessions[targetSessionId].notes = {
+                  summaryHtml: parsedSummary,
+                  transcript: data.transcript,
+                  bookmarks: [...sessionBookmarks]
+                };
+                saveToLocalStorage();
               }
 
-              // Save notes persistently in browser
-              currentNotes = {
-                summaryHtml: parsedSummary,
-                transcript: data.transcript,
-                bookmarks: [...sessionBookmarks]
-              };
-              saveToLocalStorage();
-
-              appendBubble("✨ Lecture processed and summarized! Click **🧠 Quiz Me** anytime to test your understanding.", false, true);
+              if (currentSessionId === targetSessionId) {
+                if (summaryDisplay) summaryDisplay.innerHTML = parsedSummary;
+                if (data.transcript && transcriptDisplay) {
+                  transcriptDisplay.innerText = data.transcript;
+                  transcriptDisplay.style.fontStyle = "normal";
+                  transcriptDisplay.style.color = "#212529";
+                }
+                appendBubble("✨ Lecture processed and summarized! Click **🧠 Quiz Me** anytime to test your understanding.", false, true);
+              }
             } else {
               if (summaryDisplay) summaryDisplay.innerHTML = "Server Error: " + (data.detail || 'Unknown');
             }
