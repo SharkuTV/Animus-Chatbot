@@ -302,6 +302,13 @@
 </div>
 
 <script>
+  // Generate or retrieve a persistent, unique user ID per browser
+  let userId = localStorage.getItem('animus_user_id');
+  if (!userId) {
+    userId = (crypto.randomUUID ? crypto.randomUUID() : 'user_' + Math.random().toString(36).substring(2) + Date.now());
+    localStorage.setItem('animus_user_id', userId);
+  }
+
   let currentSessionId = null;
   let sessions = {};
 
@@ -347,7 +354,7 @@
     };
   }
 
-  // Event Delegation for other buttons
+  // Event Delegation for buttons
   document.addEventListener('click', (e) => {
     const target = e.target;
     if (target.id === 'sendBtn' || target.closest('#sendBtn')) handleSend();
@@ -362,7 +369,7 @@
 
   async function fetchSessions() {
     try {
-      const res = await fetch('/sessions');
+      const res = await fetch(`/sessions?user_id=${encodeURIComponent(userId)}`);
       sessions = await res.json();
       renderSessionList();
       if (!currentSessionId && Object.keys(sessions).length > 0) {
@@ -412,7 +419,7 @@
       const res = await fetch('/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title })
+        body: JSON.stringify({ user_id: userId, title })
       });
       const data = await res.json();
       sessions[data.session_id] = { title: data.title, messages: [] };
@@ -427,7 +434,7 @@
     if (!confirm("Are you sure you want to delete this chat?")) return;
 
     try {
-      const res = await fetch(`/sessions/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/sessions/${id}?user_id=${encodeURIComponent(userId)}`, { method: 'DELETE' });
       if (res.ok) {
         delete sessions[id];
         const remainingIds = Object.keys(sessions);
@@ -503,7 +510,7 @@
       const res = await fetch('/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: currentSessionId, user_message: message })
+        body: JSON.stringify({ user_id: userId, session_id: currentSessionId, user_message: message })
       });
       const data = await res.json();
       if (thinking) chatArea.removeChild(thinking);
@@ -539,7 +546,6 @@
   }
 
   async function toggleRecording() {
-    console.log("Toggle recording clicked!");
     const recordBtn = document.getElementById('recordBtn');
     const summaryDisplay = document.getElementById('summaryDisplay');
     const transcriptDisplay = document.getElementById('transcriptDisplay');
@@ -564,11 +570,11 @@
 
           const formData = new FormData();
           formData.append("file", audioBlob, "lecture.webm");
+          formData.append("user_id", userId);
 
           try {
             const res = await fetch("/upload-audio", { method: "POST", body: formData });
             const data = await res.json();
-            console.log("Server response data:", data);
             if (res.ok) {
               if (summaryDisplay && window.marked) summaryDisplay.innerHTML = marked.parse(data.summary);
               if (data.transcript && transcriptDisplay) {
@@ -581,7 +587,6 @@
               if (summaryDisplay) summaryDisplay.innerHTML = "Server Error: " + (data.detail || 'Unknown');
             }
           } catch (error) {
-            console.error("Upload error:", error);
             if (summaryDisplay) summaryDisplay.innerHTML = "Error processing recording.";
           }
         };
@@ -632,7 +637,7 @@
     a.click();
   }
 
-  // Load sessions on startup
+  // Load user-specific sessions on startup
   fetchSessions();
 </script>
 </body>
