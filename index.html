@@ -25,61 +25,13 @@
       z-index: -1;
       pointer-events: none;
     }
-    .shape-circle-pink {
-      top: 20px;
-      left: 30px;
-      width: 180px;
-      height: 180px;
-      background-color: #ff75a0;
-      border-radius: 50%;
-    }
-    .shape-rect-yellow {
-      top: 40px;
-      right: 50px;
-      width: 220px;
-      height: 120px;
-      background-color: #ffcc00;
-    }
-    .shape-square-pink {
-      top: 120px;
-      right: 230px;
-      width: 130px;
-      height: 130px;
-      background-color: #ff75a0;
-    }
-    .shape-arch-blue {
-      top: 220px;
-      right: 140px;
-      width: 100px;
-      height: 50px;
-      background-color: #0052ff;
-      border-top-left-radius: 100px;
-      border-top-right-radius: 100px;
-    }
-    .shape-square-green {
-      bottom: 30px;
-      left: 40px;
-      width: 140px;
-      height: 140px;
-      background-color: #00a86b;
-    }
-    .shape-bowl-blue {
-      bottom: 170px;
-      left: 40px;
-      width: 130px;
-      height: 65px;
-      background-color: #0052ff;
-      border-bottom-left-radius: 130px;
-      border-bottom-right-radius: 130px;
-    }
-    .shape-triangle-blue {
-      bottom: 0;
-      right: 0;
-      width: 0;
-      height: 0;
-      border-left: 170px solid transparent;
-      border-bottom: 170px solid #0052ff;
-    }
+    .shape-circle-pink { top: 20px; left: 30px; width: 180px; height: 180px; background-color: #ff75a0; border-radius: 50%; }
+    .shape-rect-yellow { top: 40px; right: 50px; width: 220px; height: 120px; background-color: #ffcc00; }
+    .shape-square-pink { top: 120px; right: 230px; width: 130px; height: 130px; background-color: #ff75a0; }
+    .shape-arch-blue { top: 220px; right: 140px; width: 100px; height: 50px; background-color: #0052ff; border-top-left-radius: 100px; border-top-right-radius: 100px; }
+    .shape-square-green { bottom: 30px; left: 40px; width: 140px; height: 140px; background-color: #00a86b; }
+    .shape-bowl-blue { bottom: 170px; left: 40px; width: 130px; height: 65px; background-color: #0052ff; border-bottom-left-radius: 130px; border-bottom-right-radius: 130px; }
+    .shape-triangle-blue { bottom: 0; right: 0; width: 0; height: 0; border-left: 170px solid transparent; border-bottom: 170px solid #0052ff; }
 
     .workspace {
       display: grid;
@@ -157,7 +109,7 @@
       background: #f8f9fa;
       border-radius: 12px;
       padding: 14px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       font-size: 0.9rem;
       line-height: 1.4;
       border: 1px solid #e9ecef;
@@ -175,6 +127,29 @@
       font-weight: 600;
       margin: 2px 4px 2px 0;
     }
+    
+    /* --- CHUNK TABS BAR --- */
+    .chunk-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+    }
+    .chunk-tab {
+      background: #e9ecef;
+      border: 1px solid #ced4da;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #495057;
+      white-space: nowrap;
+    }
+    .chunk-tab:hover { background: #dee2e6; }
+    .chunk-tab.active { background: #0052ff; color: white; border-color: #0052ff; }
+
     .message-area {
       flex-grow: 1;
       overflow-y: auto;
@@ -224,14 +199,8 @@
     }
     .mic-btn { background: #ffc107; color: #000; }
     .mic-btn.recording { background: #dc3545; color: white; animation: pulse 1.5s infinite; }
-    .pause-btn {
-      background: #6c757d;
-      color: white;
-      display: none;
-    }
-    .pause-btn.paused {
-      background: #00a86b;
-    }
+    .pause-btn { background: #6c757d; color: white; display: none; }
+    .pause-btn.paused { background: #00a86b; }
     .flag-btn {
       background: #fff3cd;
       color: #856404;
@@ -259,10 +228,7 @@
       color: #495057;
     }
     .utility-btn:hover { background: #dee2e6; }
-    .quiz-btn {
-      background: #e7f0ff;
-      color: #0052ff;
-    }
+    .quiz-btn { background: #e7f0ff; color: #0052ff; }
     .quiz-btn:hover { background: #d0e2ff; }
     .recording-controls {
       display: flex;
@@ -279,9 +245,7 @@
       align-items: center;
       gap: 6px;
     }
-    .recording-status.paused-status {
-      color: #6c757d;
-    }
+    .recording-status.paused-status { color: #6c757d; }
     .control-buttons {
       display: flex;
       align-items: center;
@@ -338,6 +302,10 @@
         <div id="transcriptDisplay" style="color: #6c757d; font-style: italic;">Real-time transcript and uploaded transcript will appear here...</div>
       </div>
     </div>
+    
+    <!-- Chunk Tabs Bar at the bottom of Studio -->
+    <div class="chunk-tabs" id="chunkTabsBar"></div>
+
     <div class="recording-controls">
       <div class="recording-status" id="recStatus">
         <span id="recDot">🔴</span> <span id="timer">00:00</span>
@@ -364,14 +332,12 @@
 </div>
 
 <script>
-  // Persistent User ID
   let userId = localStorage.getItem('animus_user_id');
   if (!userId) {
     userId = (crypto.randomUUID ? crypto.randomUUID() : 'user_' + Math.random().toString(36).substring(2) + Date.now());
     localStorage.setItem('animus_user_id', userId);
   }
 
-  // Storage Keys
   const STORAGE_SESSIONS_KEY = `animus_sessions_${userId}`;
 
   let currentSessionId = null;
@@ -383,15 +349,17 @@
   let isPaused = false;
   let timerInterval;
   let secondsElapsed = 0;
+  let chunkTimerSeconds = 0;
   let recognition = null;
   let liveTranscriptText = "";
   let sessionBookmarks = [];
 
+  const CHUNK_DURATION_SECONDS = 15 * 60; // Automatically chunk every 15 minutes
+
   function defaultNotes() {
     return {
-      summaryHtml: "No lecture analyzed yet. Click record and stop when finished!",
-      transcript: "",
-      bookmarks: []
+      chunks: [], // Array of { title, summaryHtml, transcript, bookmarks }
+      activeChunkIndex: 0
     };
   }
 
@@ -419,7 +387,6 @@
           ensureSessionNotes(sessions[id]);
         }
       }
-      // Clean up legacy global notes key so old notes don't bleed across sessions
       localStorage.removeItem(`animus_notes_${userId}`);
     } catch (e) {
       console.error("Failed to load from localStorage:", e);
@@ -431,21 +398,58 @@
     const transcriptDisplay = document.getElementById('transcriptDisplay');
     const notes = session ? ensureSessionNotes(session) : defaultNotes();
 
-    if (summaryDisplay) {
-      summaryDisplay.innerHTML = notes.summaryHtml || "No lecture analyzed yet. Click record and stop when finished!";
-    }
-    if (transcriptDisplay) {
-      if (notes.transcript) {
-        transcriptDisplay.innerText = notes.transcript;
-        transcriptDisplay.style.color = "#212529";
-        transcriptDisplay.style.fontStyle = "normal";
-      } else {
+    renderChunkTabs(notes);
+
+    if (notes.chunks.length === 0) {
+      if (summaryDisplay) summaryDisplay.innerHTML = "No lecture analyzed yet. Click record and stop when finished!";
+      if (transcriptDisplay) {
         transcriptDisplay.innerText = "Real-time transcript and uploaded transcript will appear here...";
         transcriptDisplay.style.color = "#6c757d";
         transcriptDisplay.style.fontStyle = "italic";
       }
+      renderBookmarksUI([]);
+      return;
     }
-    renderBookmarksUI(notes.bookmarks || []);
+
+    const activeChunk = notes.chunks[notes.activeChunkIndex] || notes.chunks[0];
+    if (summaryDisplay) {
+      summaryDisplay.innerHTML = activeChunk.summaryHtml || "";
+    }
+    if (transcriptDisplay) {
+      if (activeChunk.transcript) {
+        transcriptDisplay.innerText = activeChunk.transcript;
+        transcriptDisplay.style.color = "#212529";
+        transcriptDisplay.style.fontStyle = "normal";
+      } else {
+        transcriptDisplay.innerText = "(No transcript)";
+        transcriptDisplay.style.color = "#6c757d";
+        transcriptDisplay.style.fontStyle = "italic";
+      }
+    }
+    renderBookmarksUI(activeChunk.bookmarks || []);
+  }
+
+  function renderChunkTabs(notes) {
+    const tabsBar = document.getElementById('chunkTabsBar');
+    if (!tabsBar) return;
+    tabsBar.innerHTML = '';
+
+    if (!notes.chunks || notes.chunks.length === 0) {
+      tabsBar.style.display = 'none';
+      return;
+    }
+    tabsBar.style.display = 'flex';
+
+    notes.chunks.forEach((chunk, index) => {
+      const tab = document.createElement('button');
+      tab.className = `chunk-tab ${index === notes.activeChunkIndex ? 'active' : ''}`;
+      tab.innerText = chunk.title || `Part ${index + 1}`;
+      tab.onclick = () => {
+        notes.activeChunkIndex = index;
+        renderNotesForSession(sessions[currentSessionId]);
+      };
+      tabsBar.appendChild(tab);
+    });
   }
 
   function renderBookmarksUI(bookmarks) {
@@ -462,7 +466,7 @@
     list.innerHTML = bookmarks.map(b => `<span class="bookmark-badge">🚩 ${b}</span>`).join('');
   }
 
-  // Initialize Speech Recognition
+  // Speech Recognition
   if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
@@ -497,7 +501,6 @@
     };
   }
 
-  // Event Delegation
   document.addEventListener('click', (e) => {
     const target = e.target;
     if (target.id === 'sendBtn' || target.closest('#sendBtn')) handleSend();
@@ -526,7 +529,7 @@
       }
       saveToLocalStorage();
     } catch (err) {
-      console.error("Failed to fetch server sessions, using local storage:", err);
+      console.error("Failed to fetch server sessions:", err);
     }
 
     renderSessionList();
@@ -600,9 +603,7 @@
 
     try {
       await fetch(`/sessions/${id}?user_id=${encodeURIComponent(userId)}`, { method: 'DELETE' });
-    } catch (err) {
-      console.error("Server delete skipped:", err);
-    }
+    } catch (err) {}
 
     delete sessions[id];
     saveToLocalStorage();
@@ -641,8 +642,6 @@
       activeChatTitle.innerText = sessions[id] ? sessions[id].title : "Chat Workspace";
     }
     renderSessionList();
-
-    // Load the lecture notes belonging strictly to this chat session
     renderNotesForSession(sessions[id]);
 
     const chatArea = document.getElementById('chatArea');
@@ -668,6 +667,9 @@
     const activeSession = sessions[currentSessionId];
     const sessionNotes = ensureSessionNotes(activeSession);
 
+    // Combine all transcripts from all chunks as context for the chatbot
+    const combinedTranscript = sessionNotes.chunks.map(c => c.transcript).join("\n\n");
+
     appendBubble(message, true);
     activeSession.messages.push({ text: message, isUser: true, isMarkdown: false });
     saveToLocalStorage();
@@ -682,7 +684,7 @@
           user_id: userId,
           session_id: currentSessionId,
           user_message: message,
-          transcript_context: sessionNotes.transcript || "",
+          transcript_context: combinedTranscript,
           history: activeSession.messages
         })
       });
@@ -710,7 +712,7 @@
   function triggerQuizMode() {
     const activeSession = sessions[currentSessionId];
     const sessionNotes = activeSession ? ensureSessionNotes(activeSession) : defaultNotes();
-    if (!sessionNotes.transcript) {
+    if (sessionNotes.chunks.length === 0) {
       alert("Record a lecture in this chat first so Animus has notes to quiz you on!");
       return;
     }
@@ -730,6 +732,7 @@
     if (!timerDisplay || !recStatus) return;
 
     secondsElapsed = 0;
+    chunkTimerSeconds = 0;
     timerDisplay.innerText = "00:00";
     recDot.innerText = "🔴";
     recStatus.classList.remove('paused-status');
@@ -738,7 +741,13 @@
     timerInterval = setInterval(() => {
       if (!isPaused) {
         secondsElapsed++;
+        chunkTimerSeconds++;
         timerDisplay.innerText = formatTime(secondsElapsed);
+
+        // Check if we hit the 15-minute mark for automatic chunking
+        if (chunkTimerSeconds >= CHUNK_DURATION_SECONDS) {
+          triggerAutoChunk();
+        }
       }
     }, 1000);
   }
@@ -785,98 +794,25 @@
     }
   }
 
+  // Automatically finishes current chunk and starts a fresh one seamlessly
+  function triggerAutoChunk() {
+    if (!mediaRecorder || !isRecording) return;
+    mediaRecorder.stop(); // This triggers onstop, processes the chunk, and we can restart
+  }
+
   async function toggleRecording() {
     const recordBtn = document.getElementById('recordBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const flagBtn = document.getElementById('flagBtn');
-    const summaryDisplay = document.getElementById('summaryDisplay');
-    const transcriptDisplay = document.getElementById('transcriptDisplay');
 
     if (!isRecording) {
-      const targetSessionId = currentSessionId;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        liveTranscriptText = "";
-        sessionBookmarks = [];
-        isPaused = false;
-        renderBookmarksUI([]);
-
-        if (transcriptDisplay) {
-          transcriptDisplay.innerText = "Listening in real-time...";
-          transcriptDisplay.style.color = "#6c757d";
-          transcriptDisplay.style.fontStyle = "italic";
-        }
-
-        mediaRecorder.ondataavailable = event => {
-          if (event.data.size > 0) audioChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-          stream.getTracks().forEach(track => track.stop());
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          if (summaryDisplay) summaryDisplay.innerHTML = "✨ Generating comprehensive AI summary...";
-
-          const formData = new FormData();
-          formData.append("file", audioBlob, "lecture.webm");
-          formData.append("user_id", userId);
-          formData.append("session_id", targetSessionId);
-          formData.append("bookmarks", sessionBookmarks.join(", "));
-
-          try {
-            const res = await fetch("/upload-audio", { method: "POST", body: formData });
-            const data = await res.json();
-            if (res.ok) {
-              const parsedSummary = window.marked ? marked.parse(data.summary) : data.summary;
-
-              // Save notes directly to the session that recorded them
-              if (sessions[targetSessionId]) {
-                sessions[targetSessionId].notes = {
-                  summaryHtml: parsedSummary,
-                  transcript: data.transcript,
-                  bookmarks: [...sessionBookmarks]
-                };
-                saveToLocalStorage();
-              }
-
-              if (currentSessionId === targetSessionId) {
-                if (summaryDisplay) summaryDisplay.innerHTML = parsedSummary;
-                if (data.transcript && transcriptDisplay) {
-                  transcriptDisplay.innerText = data.transcript;
-                  transcriptDisplay.style.fontStyle = "normal";
-                  transcriptDisplay.style.color = "#212529";
-                }
-                appendBubble("✨ Lecture processed and summarized! Click **🧠 Quiz Me** anytime to test your understanding.", false, true);
-              }
-            } else {
-              if (summaryDisplay) summaryDisplay.innerHTML = "Server Error: " + (data.detail || 'Unknown');
-            }
-          } catch (error) {
-            if (summaryDisplay) summaryDisplay.innerHTML = "Error processing recording.";
-          }
-        };
-
-        mediaRecorder.start(250);
-        if (recognition) { try { recognition.start(); } catch (e) {} }
-        isRecording = true;
-
-        recordBtn.classList.add('recording');
-        recordBtn.innerText = "⏹️";
-        recordBtn.title = "Stop & Summarize";
-        pauseBtn.style.display = "flex";
-        pauseBtn.innerText = "⏸️";
-        pauseBtn.classList.remove('paused');
-        flagBtn.style.display = "flex";
-
-        startTimer();
-      } catch (err) {
-        alert("Microphone access denied.");
-      }
+      startNewRecordingSession();
     } else {
       isRecording = false;
       isPaused = false;
-      mediaRecorder.stop();
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
       if (recognition) { try { recognition.stop(); } catch (e) {} }
 
       recordBtn.classList.remove('recording');
@@ -884,9 +820,106 @@
       recordBtn.title = "Record Lecture";
       pauseBtn.style.display = "none";
       flagBtn.style.display = "none";
-
       stopTimer();
     }
+  }
+
+  function startNewRecordingSession() {
+    const recordBtn = document.getElementById('recordBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const flagBtn = document.getElementById('flagBtn');
+    const transcriptDisplay = document.getElementById('transcriptDisplay');
+
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+      liveTranscriptText = "";
+      sessionBookmarks = [];
+      isPaused = false;
+      chunkTimerSeconds = 0;
+      renderBookmarksUI([]);
+
+      if (transcriptDisplay) {
+        transcriptDisplay.innerText = "Listening in real-time...";
+        transcriptDisplay.style.color = "#6c757d";
+        transcriptDisplay.style.fontStyle = "italic";
+      }
+
+      mediaRecorder.ondataavailable = event => {
+        if (event.data.size > 0) audioChunks.push(event.data);
+      };
+
+      const targetSessionId = currentSessionId;
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        if (audioChunks.length === 0) return;
+
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const summaryDisplay = document.getElementById('summaryDisplay');
+        if (summaryDisplay) summaryDisplay.innerHTML = "✨ Processing chunk & generating AI summary...";
+
+        const formData = new FormData();
+        formData.append("file", audioBlob, "lecture.webm");
+        formData.append("user_id", userId);
+        formData.append("session_id", targetSessionId);
+        formData.append("bookmarks", sessionBookmarks.join(", "));
+
+        try {
+          const res = await fetch("/upload-audio", { method: "POST", body: formData });
+          const data = await res.json();
+          if (res.ok) {
+            const parsedSummary = window.marked ? marked.parse(data.summary) : data.summary;
+
+            if (sessions[targetSessionId]) {
+              const notes = ensureSessionNotes(sessions[targetSessionId]);
+              const chunkNumber = notes.chunks.length + 1;
+              notes.chunks.push({
+                title: `Part ${chunkNumber}`,
+                summaryHtml: parsedSummary,
+                transcript: data.transcript,
+                bookmarks: [...sessionBookmarks]
+              });
+              notes.activeChunkIndex = notes.chunks.length - 1;
+              saveToLocalStorage();
+
+              if (currentSessionId === targetSessionId) {
+                renderNotesForSession(sessions[targetSessionId]);
+              }
+            }
+
+            // If we hit the auto-chunk threshold and user is still recording, start the next chunk right away!
+            if (isRecording) {
+              startNewRecordingSession();
+            } else {
+              appendBubble("✨ Lecture chunk processed and summarized!", false, true);
+            }
+          } else {
+            if (summaryDisplay) summaryDisplay.innerHTML = "Server Error: " + (data.detail || 'Unknown');
+          }
+        } catch (error) {
+          if (summaryDisplay) summaryDisplay.innerHTML = "Error processing recording chunk.";
+        }
+      };
+
+      mediaRecorder.start(250);
+      if (recognition) { try { recognition.start(); } catch (e) {} }
+      isRecording = true;
+
+      recordBtn.classList.add('recording');
+      recordBtn.innerText = "⏹️";
+      recordBtn.title = "Stop & Summarize";
+      pauseBtn.style.display = "flex";
+      pauseBtn.innerText = "⏸️";
+      pauseBtn.classList.remove('paused');
+      flagBtn.style.display = "flex";
+
+      if (!timerInterval) {
+        startTimer();
+      }
+    }).catch(err => {
+      alert("Microphone access denied.");
+    });
   }
 
   function copyNotes() {
@@ -898,7 +931,6 @@
     alert("Notes copied to clipboard!");
   }
 
-  // Initialize workspace on load
   initWorkspace();
 </script>
 </body>
