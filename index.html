@@ -343,7 +343,8 @@
   let currentSessionId = null;
   let sessions = {};
 
-  let mediaRecorder;
+  let mediaStream = null;
+  let mediaRecorder = null;
   let audioChunks = [];
   let isRecording = false;
   let isPaused = false;
@@ -354,11 +355,11 @@
   let liveTranscriptText = "";
   let sessionBookmarks = [];
 
-  const CHUNK_DURATION_SECONDS = 15 * 60; // Automatically chunk every 15 minutes
+  const CHUNK_DURATION_SECONDS = 15 * 60; // 15 minutes per chunk
 
   function defaultNotes() {
     return {
-      chunks: [], // Array of { title, summaryHtml, transcript, bookmarks }
+      chunks: [],
       activeChunkIndex: 0
     };
   }
@@ -373,9 +374,7 @@
   function saveToLocalStorage() {
     try {
       localStorage.setItem(STORAGE_SESSIONS_KEY, JSON.stringify(sessions));
-    } catch (e) {
-      console.error("Failed to save to localStorage:", e);
-    }
+    } catch (e) {}
   }
 
   function loadFromLocalStorage() {
@@ -388,9 +387,7 @@
         }
       }
       localStorage.removeItem(`animus_notes_${userId}`);
-    } catch (e) {
-      console.error("Failed to load from localStorage:", e);
-    }
+    } catch (e) {}
   }
 
   function renderNotesForSession(session) {
@@ -528,9 +525,7 @@
         }
       }
       saveToLocalStorage();
-    } catch (err) {
-      console.error("Failed to fetch server sessions:", err);
-    }
+    } catch (err) {}
 
     renderSessionList();
     const sessionIds = Object.keys(sessions);
@@ -667,7 +662,6 @@
     const activeSession = sessions[currentSessionId];
     const sessionNotes = ensureSessionNotes(activeSession);
 
-    // Combine all transcripts from all chunks as context for the chatbot
     const combinedTranscript = sessionNotes.chunks.map(c => c.transcript).join("\n\n");
 
     appendBubble(message, true);
@@ -739,12 +733,11 @@
     recStatus.style.display = "flex";
 
     timerInterval = setInterval(() => {
-      if (!isPaused) {
+      if (!isPaused && isRecording) {
         secondsElapsed++;
         chunkTimerSeconds++;
         timerDisplay.innerText = formatTime(secondsElapsed);
 
-        // Check if we hit the 15-minute mark for automatic chunking
         if (chunkTimerSeconds >= CHUNK_DURATION_SECONDS) {
           triggerAutoChunk();
         }
@@ -794,10 +787,10 @@
     }
   }
 
-  // Automatically finishes current chunk and starts a fresh one seamlessly
   function triggerAutoChunk() {
     if (!mediaRecorder || !isRecording) return;
-    mediaRecorder.stop(); // This triggers onstop, processes the chunk, and we can restart
+    // Request data slice, stop recorder, and let onstop handle uploading and restarting seamlessly
+    mediaRecorder.stop();
   }
 
   async function toggleRecording() {
@@ -806,12 +799,34 @@
     const flagBtn = document.getElementById('flagBtn');
 
     if (!isRecording) {
-      startNewRecordingSession();
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        isRecording = true;
+        isPaused = false;
+        secondsElapsed = 0;
+        sessionBookmarks = [];
+
+        recordBtn.classList.add('recording');
+        recordBtn.innerText = "⏹️";
+        recordBtn.title = "Stop & Summarize";
+        pauseBtn.style.display = "flex";
+        pauseBtn.innerText = "⏸️";
+        pauseBtn.classList.remove('paused');
+        flagBtn.style.display = "flex";
+
+        startTimer();
+        startChunkRecorder();
+      } catch (err) {
+        alert("Microphone access denied.");
+      }
     } else {
       isRecording = false;
       isPaused = false;
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
+      }
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
       }
       if (recognition) { try { recognition.stop(); } catch (e) {} }
 
@@ -824,102 +839,82 @@
     }
   }
 
-  function startNewRecordingSession() {
-    const recordBtn = document.getElementById('recordBtn');
-    const pauseBtn = document.getElementById('pauseBtn');
-    const flagBtn = document.getElementById('flagBtn');
+  function startChunkRecorder() {
+    if (!isRecording || !mediaStream) return;
+
+    audioChunks = [];
+    chunkTimerSeconds = 0;
+    liveTranscriptText = "";
+
     const transcriptDisplay = document.getElementById('transcriptDisplay');
+    if (transcriptDisplay) {
+      transcriptDisplay.innerText = "Listening in real-time...";
+      transcriptDisplay.style.color = "#6c757d";
+      transcriptDisplay.style.fontStyle = "italic";
+    }
 
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-      liveTranscriptText = "";
-      sessionBookmarks = [];
-      isPaused = false;
-      chunkTimerSeconds = 0;
-      renderBookmarksUI([]);
+    mediaRecorder = new MediaRecorder(mediaStream);
 
-      if (transcriptDisplay) {
-        transcriptDisplay.innerText = "Listening in real-time...";
-        transcriptDisplay.style.color = "#6c757d";
-        transcriptDisplay.style.fontStyle = "italic";
-      }
+    mediaRecorder.ondataavailable = event => {
+      if (event.data.size > 0) audioChunks.push(event.data);
+    };
 
-      mediaRecorder.ondataavailable = event => {
-        if (event.data.size > 0) audioChunks.push(event.data);
-      };
+    const targetSessionId = currentSessionId;
+    const currentBookmarks = [...sessionBookmarks];
 
-      const targetSessionId = currentSessionId;
+    mediaRecorder.onstop = async () => {
+      if (audioChunks.length === 0) return;
 
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop());
-        if (audioChunks.length === 0) return;
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const summaryDisplay = document.getElementById('summaryDisplay');
+      if (summaryDisplay) summaryDisplay.innerHTML = "✨ Processing chunk & generating AI summary...";
 
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const summaryDisplay = document.getElementById('summaryDisplay');
-        if (summaryDisplay) summaryDisplay.innerHTML = "✨ Processing chunk & generating AI summary...";
+      const formData = new FormData();
+      formData.append("file", audioBlob, "lecture.webm");
+      formData.append("user_id", userId);
+      formData.append("session_id", targetSessionId);
+      formData.append("bookmarks", currentBookmarks.join(", "));
 
-        const formData = new FormData();
-        formData.append("file", audioBlob, "lecture.webm");
-        formData.append("user_id", userId);
-        formData.append("session_id", targetSessionId);
-        formData.append("bookmarks", sessionBookmarks.join(", "));
+      try {
+        const res = await fetch("/upload-audio", { method: "POST", body: formData });
+        const data = await res.json();
+        if (res.ok) {
+          const parsedSummary = window.marked ? marked.parse(data.summary) : data.summary;
 
-        try {
-          const res = await fetch("/upload-audio", { method: "POST", body: formData });
-          const data = await res.json();
-          if (res.ok) {
-            const parsedSummary = window.marked ? marked.parse(data.summary) : data.summary;
+          if (sessions[targetSessionId]) {
+            const notes = ensureSessionNotes(sessions[targetSessionId]);
+            const chunkNumber = notes.chunks.length + 1;
+            notes.chunks.push({
+              title: `Part ${chunkNumber}`,
+              summaryHtml: parsedSummary,
+              transcript: data.transcript,
+              bookmarks: currentBookmarks
+            });
+            notes.activeChunkIndex = notes.chunks.length - 1;
+            saveToLocalStorage();
 
-            if (sessions[targetSessionId]) {
-              const notes = ensureSessionNotes(sessions[targetSessionId]);
-              const chunkNumber = notes.chunks.length + 1;
-              notes.chunks.push({
-                title: `Part ${chunkNumber}`,
-                summaryHtml: parsedSummary,
-                transcript: data.transcript,
-                bookmarks: [...sessionBookmarks]
-              });
-              notes.activeChunkIndex = notes.chunks.length - 1;
-              saveToLocalStorage();
-
-              if (currentSessionId === targetSessionId) {
-                renderNotesForSession(sessions[targetSessionId]);
-              }
+            if (currentSessionId === targetSessionId) {
+              renderNotesForSession(sessions[targetSessionId]);
             }
-
-            // If we hit the auto-chunk threshold and user is still recording, start the next chunk right away!
-            if (isRecording) {
-              startNewRecordingSession();
-            } else {
-              appendBubble("✨ Lecture chunk processed and summarized!", false, true);
-            }
-          } else {
-            if (summaryDisplay) summaryDisplay.innerHTML = "Server Error: " + (data.detail || 'Unknown');
           }
-        } catch (error) {
-          if (summaryDisplay) summaryDisplay.innerHTML = "Error processing recording chunk.";
+
+          // If the user is still recording, automatically kick off the next chunk recorder cleanly!
+          if (isRecording) {
+            startChunkRecorder();
+          } else {
+            if (summaryDisplay) summaryDisplay.innerHTML = parsedSummary;
+            appendBubble("✨ Lecture fully processed and summarized!", false, true);
+          }
+        } else {
+          if (summaryDisplay) summaryDisplay.innerHTML = "Server Error: " + (data.detail || 'Unknown');
         }
-      };
-
-      mediaRecorder.start(250);
-      if (recognition) { try { recognition.start(); } catch (e) {} }
-      isRecording = true;
-
-      recordBtn.classList.add('recording');
-      recordBtn.innerText = "⏹️";
-      recordBtn.title = "Stop & Summarize";
-      pauseBtn.style.display = "flex";
-      pauseBtn.innerText = "⏸️";
-      pauseBtn.classList.remove('paused');
-      flagBtn.style.display = "flex";
-
-      if (!timerInterval) {
-        startTimer();
+      } catch (error) {
+        if (summaryDisplay) summaryDisplay.innerHTML = "Error processing recording chunk.";
       }
-    }).catch(err => {
-      alert("Microphone access denied.");
-    });
+    };
+
+    mediaRecorder.start(250);
+    if (recognition) { try { recognition.start(); } catch (e) {} }
   }
 
   function copyNotes() {
