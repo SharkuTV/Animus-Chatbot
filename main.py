@@ -20,18 +20,12 @@ app.add_middleware(
 
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-# Partitioned in-memory cache per user_id:
-# users_db[user_id] = {"sessions": {session_id: {"title": ..., "messages": [...], "transcript": ""}}}
 users_db = {}
-
 
 def get_user_store(user_id: str):
     if user_id not in users_db:
-        users_db[user_id] = {
-            "sessions": {},
-        }
+        users_db[user_id] = {"sessions": {}}
     return users_db[user_id]
-
 
 def ensure_session(store: dict, session_id: str, title: str = "Restored Study Chat"):
     if session_id not in store["sessions"]:
@@ -42,11 +36,9 @@ def ensure_session(store: dict, session_id: str, title: str = "Restored Study Ch
         }
     return store["sessions"][session_id]
 
-
 class CreateSessionRequest(BaseModel):
     user_id: str
     title: str
-
 
 class ChatMessageRequest(BaseModel):
     user_id: str
@@ -55,19 +47,16 @@ class ChatMessageRequest(BaseModel):
     transcript_context: Optional[str] = None
     history: Optional[list] = None
 
-
 @app.get("/")
 def serve_frontend():
     if os.path.exists("index.html"):
         return FileResponse("index.html")
     return {"status": "Animus backend is running!"}
 
-
 @app.get("/sessions")
 def get_sessions(user_id: str):
     store = get_user_store(user_id)
     return store["sessions"]
-
 
 @app.post("/sessions")
 def create_session(req: CreateSessionRequest):
@@ -80,7 +69,6 @@ def create_session(req: CreateSessionRequest):
     }
     return {"session_id": session_id, "title": req.title}
 
-
 @app.delete("/sessions/{session_id}")
 def delete_session(session_id: str, user_id: str):
     store = get_user_store(user_id)
@@ -89,13 +77,11 @@ def delete_session(session_id: str, user_id: str):
         return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Session not found")
 
-
 @app.post("/chat")
 async def chat_endpoint(req: ChatMessageRequest):
     store = get_user_store(req.user_id)
     session = ensure_session(store, req.session_id)
 
-    # Restore transcript context specific to THIS session if server restarted
     if req.transcript_context is not None:
         session["transcript"] = req.transcript_context
 
@@ -132,7 +118,6 @@ async def chat_endpoint(req: ChatMessageRequest):
     except Exception as e:
         return {"response": f"⚠️ Server Error: {str(e)}"}
 
-
 @app.post("/upload-audio")
 async def upload_audio(
     file: UploadFile = File(...),
@@ -149,22 +134,26 @@ async def upload_audio(
             temp_audio.write(content)
             temp_path = temp_audio.name
 
-        # 1. Transcribe audio with Groq Whisper
         with open(temp_path, "rb") as audio_file:
             transcription = groq_client.audio.transcriptions.create(
                 file=("lecture.webm", audio_file.read()),
                 model="whisper-large-v3-turbo",
             )
         transcript_text = transcription.text.strip()
-        session["transcript"] = transcript_text
+        
+        # Append chunk transcript to session transcript history
+        if transcript_text:
+            if session["transcript"]:
+                session["transcript"] += "\n\n" + transcript_text
+            else:
+                session["transcript"] = transcript_text
 
         if not transcript_text:
             return {
                 "transcript": "(No speech detected)",
-                "summary": "No speech was detected in the recording.",
+                "summary": "No speech was detected in this recording segment.",
             }
 
-        # 2. Summarize transcript (highlighting any flagged timestamps)
         bookmark_instruction = ""
         if bookmarks.strip():
             bookmark_instruction = (
