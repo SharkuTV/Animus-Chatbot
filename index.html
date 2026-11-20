@@ -48,24 +48,11 @@
     }
     h2 { margin-top: 0; font-size: 1.1rem; color: #333; display: flex; justify-content: space-between; align-items: center; }
     .sidebar-list {
-      flex-grow: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 12px;
+      flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;
     }
     .session-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 10px;
-      border-radius: 10px;
-      background: #f8f9fa;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: #495057;
-      border: 1px solid #e9ecef;
+      display: flex; justify-content: space-between; align-items: center; padding: 8px 10px;
+      border-radius: 10px; background: #f8f9fa; cursor: pointer; font-size: 0.9rem; color: #495057; border: 1px solid #e9ecef;
     } 
     .session-item:hover { background: #e9ecef; }
     .session-item.active { background: #0052ff; color: white; border-color: #0052ff; font-weight: 600; }
@@ -239,9 +226,11 @@
       const savedSessions = localStorage.getItem(STORAGE_SESSIONS_KEY);
       if (savedSessions) {
         sessions = JSON.parse(savedSessions);
-        for (const id of Object.keys(sessions)) ensureSessionNotes(sessions[id]);
+        for (const id of Object.keys(sessions)) {
+          ensureSessionNotes(sessions[id]);
+          if (!sessions[id].messages) sessions[id].messages = [];
+        }
       }
-      localStorage.removeItem(`animus_notes_${userId}`);
     } catch (e) {}
   }
 
@@ -444,8 +433,11 @@
     if (!chatArea) return;
     const bubble = document.createElement('div');
     bubble.className = isUser ? 'user-bubble' : 'ai-bubble';
-    if (isMarkdown && !isUser && window.marked) bubble.innerHTML = marked.parse(text);
-    else bubble.innerText = text;
+    if (isMarkdown && !isUser && window.marked) {
+      bubble.innerHTML = marked.parse(text);
+    } else {
+      bubble.innerText = text;
+    }
     chatArea.appendChild(bubble);
     chatArea.scrollTop = chatArea.scrollHeight;
     return bubble;
@@ -464,11 +456,17 @@
     chatArea.innerHTML = '';
     
     if (!sessions[id]) return;
+    if (!sessions[id].messages) sessions[id].messages = [];
+    
     const msgs = sessions[id].messages;
     if (msgs.length === 0) {
       appendBubble("Hello! Ask me any questions, record a lecture, or click '🧠 Quiz Me' to test yourself.", false);
     } else {
-      msgs.forEach(m => appendBubble(m.text, m.isUser || m.is_user, m.isMarkdown || m.is_markdown));
+      msgs.forEach(m => {
+        const isUserMsg = m.isUser === true || m.is_user === true;
+        const isMarkdownMsg = m.isMarkdown === true || m.is_markdown === true;
+        appendBubble(m.text, isUserMsg, isMarkdownMsg);
+      });
     }
   }
 
@@ -476,6 +474,7 @@
     if (!message || !currentSessionId) return;
     const chatArea = document.getElementById('chatArea');
     const activeSession = sessions[currentSessionId];
+    if (!activeSession.messages) activeSession.messages = [];
     const sessionNotes = ensureSessionNotes(activeSession);
 
     const combinedTranscript = sessionNotes.chunks.map(c => c.transcript).join("\n\n");
@@ -670,6 +669,8 @@
       if (audioChunks.length === 0) return;
 
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      if (audioBlob.size < 1000 && !isRecording) return;
+
       const summaryDisplay = document.getElementById('summaryDisplay');
       if (summaryDisplay) summaryDisplay.innerHTML = "✨ Processing chunk & generating AI summary...";
 
