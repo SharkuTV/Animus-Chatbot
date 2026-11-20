@@ -428,16 +428,23 @@
     renderSessionList();
   }
 
+  // Safely renders chat bubbles with robust fallback for Markdown
   function appendBubble(text, isUser, isMarkdown = false) {
     const chatArea = document.getElementById('chatArea');
     if (!chatArea) return;
     const bubble = document.createElement('div');
     bubble.className = isUser ? 'user-bubble' : 'ai-bubble';
+    
     if (isMarkdown && !isUser && window.marked) {
-      bubble.innerHTML = marked.parse(text);
+      try {
+        bubble.innerHTML = marked.parse(text);
+      } catch (e) {
+        bubble.innerText = text;
+      }
     } else {
       bubble.innerText = text;
     }
+    
     chatArea.appendChild(bubble);
     chatArea.scrollTop = chatArea.scrollHeight;
     return bubble;
@@ -472,17 +479,18 @@
 
   async function sendMessageText(message) {
     if (!message || !currentSessionId) return;
-    const chatArea = document.getElementById('chatArea');
     const activeSession = sessions[currentSessionId];
     if (!activeSession.messages) activeSession.messages = [];
     const sessionNotes = ensureSessionNotes(activeSession);
 
     const combinedTranscript = sessionNotes.chunks.map(c => c.transcript).join("\n\n");
 
+    // 1. Append and render user message immediately
     appendBubble(message, true);
     activeSession.messages.push({ text: message, isUser: true, isMarkdown: false });
     saveToLocalStorage();
 
+    // 2. Show thinking indicator
     const thinking = appendBubble("Animus is thinking...", false);
 
     try {
@@ -498,14 +506,18 @@
         })
       });
       const data = await res.json();
-      if (thinking) chatArea.removeChild(thinking);
+      
+      // 3. Remove thinking indicator
+      if (thinking) thinking.remove();
 
-      appendBubble(data.response, false, true);
-      activeSession.messages.push({ text: data.response, isUser: false, isMarkdown: true });
+      // 4. Append AI response
+      const replyText = data.response || "⚠️ No response received.";
+      appendBubble(replyText, false, true);
+      activeSession.messages.push({ text: replyText, isUser: false, isMarkdown: true });
       saveToLocalStorage();
     } catch (err) {
-      if (thinking) chatArea.removeChild(thinking);
-      appendBubble("Error communicating with backend.", false);
+      if (thinking) thinking.remove();
+      appendBubble("⚠️ Error communicating with backend.", false);
     }
   }
 
