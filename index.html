@@ -40,9 +40,9 @@
 
       /* Dark Mode Pink / Purple / Blue Neon Color Palette */
       --shape-pink: #ff2a75;
-      --shape-yellow: #9333ea; /* shifting yellow slot to deep neon purple */
+      --shape-yellow: #9333ea;
       --shape-blue: #3b82f6;
-      --shape-green: #8b5cf6; /* shifting green slot to violet */
+      --shape-green: #8b5cf6;
       --shape-purple: #c084fc;
       --shape-cyan: #60a5fa;
     }
@@ -188,6 +188,58 @@
       70% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
     }
+
+    /* --- KAIJU SCREEN BREAK EASTER EGG --- */
+    #kaijuOverlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      overflow: hidden;
+    }
+    #kaijuOverlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    @keyframes screenShake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      20% { transform: translate(-10px, 10px) rotate(-1deg); }
+      40% { transform: translate(10px, -10px) rotate(1deg); }
+      60% { transform: translate(-15px, 5px) rotate(0deg); }
+      80% { transform: translate(15px, -5px) rotate(1deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+    .shake-screen {
+      animation: screenShake 0.4s ease infinite;
+    }
+    .kaiju-monster {
+      font-size: 8rem;
+      animation: kaijuRoar 0.5s ease infinite alternate;
+      filter: drop-shadow(0 0 30px #ff2a75);
+    }
+    @keyframes kaijuRoar {
+      0% { transform: scale(1) translateY(50px); }
+      100% { transform: scale(1.1) translateY(0px) rotate(3deg); }
+    }
+    .claw-scratch {
+      position: absolute;
+      background: #ff2a75;
+      height: 6px;
+      width: 0;
+      box-shadow: 0 0 15px #ff2a75;
+      animation: scratchSlash 0.8s forwards;
+    }
+    @keyframes scratchSlash {
+      0% { width: 0; opacity: 1; }
+      100% { width: 80vw; opacity: 0.8; }
+    }
   </style>
 </head>
 <body>
@@ -262,6 +314,14 @@
       <button class="btn send-btn" id="sendBtn" title="Send">➔</button>
     </div>
   </div>
+</div>
+
+<!-- Kaiju Easter Egg Overlay -->
+<div id="kaijuOverlay">
+  <div class="kaiju-monster">🦖💥</div>
+  <h1 style="color: #ff2a75; font-size: 2.5rem; text-transform: uppercase; text-shadow: 0 0 20px rgba(255,42,117,0.7); margin: 10px 0;">Warning: Subject 404 Breached Containment!</h1>
+  <p style="color: #f8fafc; font-size: 1.1rem; text-align: center; max-width: 600px; padding: 0 20px;">Animus security protocols have completely failed. The lecture notes are being devoured.</p>
+  <button class="utility-btn" style="margin-top: 25px; padding: 10px 20px; background: #ff2a75; color: white; border: none;" onclick="closeKaiju()">Deploy Containment Field</button>
 </div>
 
 <script>
@@ -538,6 +598,18 @@
     const bubble = document.createElement('div');
     bubble.className = isUser ? 'user-bubble' : 'ai-bubble';
     
+    if (!isUser) {
+      try {
+        const quizData = JSON.parse(text);
+        if (quizData && quizData.question) {
+          renderInteractiveQuiz(quizData, bubble);
+          chatArea.appendChild(bubble);
+          chatArea.scrollTop = chatArea.scrollHeight;
+          return bubble;
+        }
+      } catch (e) {}
+    }
+
     if (isMarkdown && !isUser && window.marked) {
       try { bubble.innerHTML = marked.parse(text); } catch (e) { bubble.innerText = text; }
     } else {
@@ -547,6 +619,67 @@
     chatArea.appendChild(bubble);
     chatArea.scrollTop = chatArea.scrollHeight;
     return bubble;
+  }
+
+  function renderInteractiveQuiz(quiz, container) {
+    container.innerHTML = `<strong>🧠 Pop Quiz:</strong><p style="margin: 8px 0;">${quiz.question}</p>`;
+    
+    if (quiz.type === 'mcq' && quiz.options) {
+      const optionsDiv = document.createElement('div');
+      optionsDiv.style.display = 'flex';
+      optionsDiv.style.flexDirection = 'column';
+      optionsDiv.style.gap = '6px';
+      optionsDiv.style.marginTop = '8px';
+
+      quiz.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.innerText = opt;
+        btn.className = 'utility-btn';
+        btn.style.textAlign = 'left';
+        btn.style.padding = '8px 12px';
+        btn.onclick = () => {
+          optionsDiv.querySelectorAll('button').forEach(b => b.disabled = true);
+          sendMessageText(`My answer is: ${opt}`);
+        };
+        optionsDiv.appendChild(btn);
+      });
+      container.appendChild(optionsDiv);
+    } else {
+      const inputGroup = document.createElement('div');
+      inputGroup.style.display = 'flex';
+      inputGroup.style.gap = '6px';
+      inputGroup.style.marginTop = '8px';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Type your short answer...';
+      input.style.flexGrow = '1';
+      input.style.padding = '6px 10px';
+      input.style.borderRadius = '6px';
+      input.style.border = '1px solid var(--border-color)';
+      input.style.background = 'var(--input-bg)';
+      input.style.color = 'var(--text-main)';
+
+      const submitBtn = document.createElement('button');
+      submitBtn.innerText = 'Submit';
+      submitBtn.className = 'utility-btn';
+      submitBtn.style.background = '#0052ff';
+      submitBtn.style.color = 'white';
+      submitBtn.onclick = () => {
+        if (!input.value.trim()) return;
+        input.disabled = true;
+        submitBtn.disabled = true;
+        sendMessageText(`My answer is: ${input.value.trim()}`);
+      };
+
+      input.onkeypress = (e) => {
+        if (e.key === 'Enter') submitBtn.click();
+      };
+
+      inputGroup.appendChild(input);
+      inputGroup.appendChild(submitBtn);
+      container.appendChild(inputGroup);
+    }
   }
 
   function switchSession(id) {
@@ -607,6 +740,16 @@
 
   async function sendMessageText(message) {
     if (!message || !currentSessionId) return;
+
+    // --- KAIJU EASTER EGG ---
+    if (message.toLowerCase() === "release the kaiju") {
+      appendBubble(message, true);
+      triggerKaijuAnimation();
+      document.getElementById('textInput').value = '';
+      return;
+    }
+    // ------------------------
+
     const activeSession = sessions[currentSessionId];
     if (!activeSession.messages) activeSession.messages = [];
     const sessionNotes = ensureSessionNotes(activeSession);
@@ -645,6 +788,33 @@
     }
   }
 
+  function triggerKaijuAnimation() {
+    const overlay = document.getElementById('kaijuOverlay');
+    overlay.classList.add('active');
+    document.body.classList.add('shake-screen');
+
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        const scratch = document.createElement('div');
+        scratch.className = 'claw-scratch';
+        scratch.style.top = (20 + i * 25) + 'vh';
+        scratch.style.left = (10 + i * 5) + 'vw';
+        scratch.style.transform = `rotate(${(-20 + i * 20)}deg)`;
+        overlay.appendChild(scratch);
+      }, i * 200);
+    }
+  }
+
+  function closeKaiju() {
+    const overlay = document.getElementById('kaijuOverlay');
+    overlay.classList.remove('active');
+    document.body.classList.remove('shake-screen');
+    setTimeout(() => {
+      overlay.querySelectorAll('.claw-scratch').forEach(s => s.remove());
+    }, 300);
+    appendBubble("Containment successful. The monster is back in digital captivity.", false);
+  }
+
   function handleSend() {
     const textInput = document.getElementById('textInput');
     if (!textInput) return;
@@ -661,7 +831,7 @@
       alert("Record a lecture in this chat first so Animus has notes to quiz you on!");
       return;
     }
-    sendMessageText("🧠 Quiz me on this lecture! Ask me 2 practice questions (one multiple choice and one short answer) and wait for my reply before grading me.");
+    sendMessageText("Generate a multiple choice quiz question based on this lecture.");
   }
 
   function formatTime(secsTotal) {
