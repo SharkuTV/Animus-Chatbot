@@ -189,56 +189,39 @@
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
     }
 
-    /* --- KAIJU SCREEN BREAK EASTER EGG --- */
-    #kaijuOverlay {
+    /* --- CAT DESTRUCTION EASTER EGG --- */
+    #catOverlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0, 0, 0, 0.9);
+      background: rgba(0, 0, 0, 0.3);
       z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      opacity: 0;
+      display: none;
       pointer-events: none;
-      transition: opacity 0.3s ease;
       overflow: hidden;
     }
-    #kaijuOverlay.active {
-      opacity: 1;
-      pointer-events: auto;
+    .walking-cat {
+      position: absolute;
+      bottom: 20px;
+      font-size: 4rem;
+      animation: walkAcross 3s linear forwards;
     }
-    @keyframes screenShake {
-      0% { transform: translate(0, 0) rotate(0deg); }
-      20% { transform: translate(-10px, 10px) rotate(-1deg); }
-      40% { transform: translate(10px, -10px) rotate(1deg); }
-      60% { transform: translate(-15px, 5px) rotate(0deg); }
-      80% { transform: translate(15px, -5px) rotate(1deg); }
-      100% { transform: translate(0, 0) rotate(0deg); }
+    @keyframes walkAcross {
+      0% { left: -100px; transform: scaleX(1); }
+      50% { left: 45vw; transform: scaleX(1); }
+      55% { transform: scaleX(-1) rotate(10deg); }
+      100% { left: 105vw; transform: scaleX(-1); }
     }
-    .shake-screen {
-      animation: screenShake 0.4s ease infinite;
-    }
-    .kaiju-monster {
-      font-size: 8rem;
-      animation: kaijuRoar 0.5s ease infinite alternate;
-      filter: drop-shadow(0 0 30px #ff2a75);
-    }
-    @keyframes kaijuRoar {
-      0% { transform: scale(1) translateY(50px); }
-      100% { transform: scale(1.1) translateY(0px) rotate(3deg); }
-    }
-    .claw-scratch {
+    .scratch-mark {
       position: absolute;
       background: #ff2a75;
-      height: 6px;
+      height: 4px;
       width: 0;
-      box-shadow: 0 0 15px #ff2a75;
-      animation: scratchSlash 0.8s forwards;
+      box-shadow: 0 0 10px #ff2a75;
+      animation: scratchAnim 0.4s forwards;
     }
-    @keyframes scratchSlash {
+    @keyframes scratchAnim {
       0% { width: 0; opacity: 1; }
-      100% { width: 80vw; opacity: 0.8; }
+      100% { width: 150px; opacity: 0; }
     }
   </style>
 </head>
@@ -316,12 +299,9 @@
   </div>
 </div>
 
-<!-- Kaiju Easter Egg Overlay -->
-<div id="kaijuOverlay">
-  <div class="kaiju-monster">🦖💥</div>
-  <h1 style="color: #ff2a75; font-size: 2.5rem; text-transform: uppercase; text-shadow: 0 0 20px rgba(255,42,117,0.7); margin: 10px 0;">Warning: Subject 404 Breached Containment!</h1>
-  <p style="color: #f8fafc; font-size: 1.1rem; text-align: center; max-width: 600px; padding: 0 20px;">Animus security protocols have completely failed. The lecture notes are being devoured.</p>
-  <button class="utility-btn" style="margin-top: 25px; padding: 10px 20px; background: #ff2a75; color: white; border: none;" onclick="closeKaiju()">Deploy Containment Field</button>
+<!-- Cat Destruction Overlay -->
+<div id="catOverlay">
+  <div class="walking-cat" id="walkingCat">🐈</div>
 </div>
 
 <script>
@@ -741,14 +721,14 @@
   async function sendMessageText(message) {
     if (!message || !currentSessionId) return;
 
-    // --- KAIJU EASTER EGG ---
-    if (message.toLowerCase() === "release the kaiju") {
+    // --- CAT DESTRUCTION EASTER EGG ---
+    if (message.toLowerCase() === "release the cat") {
       appendBubble(message, true);
-      triggerKaijuAnimation();
+      triggerCatDestruction();
       document.getElementById('textInput').value = '';
       return;
     }
-    // ------------------------
+    // ----------------------------------
 
     const activeSession = sessions[currentSessionId];
     if (!activeSession.messages) activeSession.messages = [];
@@ -788,31 +768,39 @@
     }
   }
 
-  function triggerKaijuAnimation() {
-    const overlay = document.getElementById('kaijuOverlay');
-    overlay.classList.add('active');
-    document.body.classList.add('shake-screen');
+  function triggerCatDestruction() {
+    const overlay = document.getElementById('catOverlay');
+    overlay.style.display = 'block';
 
-    for (let i = 0; i < 3; i++) {
-      setTimeout(() => {
-        const scratch = document.createElement('div');
-        scratch.className = 'claw-scratch';
-        scratch.style.top = (20 + i * 25) + 'vh';
-        scratch.style.left = (10 + i * 5) + 'vw';
-        scratch.style.transform = `rotate(${(-20 + i * 20)}deg)`;
-        overlay.appendChild(scratch);
-      }, i * 200);
-    }
-  }
+    const workspacePanels = document.querySelectorAll('.panel');
 
-  function closeKaiju() {
-    const overlay = document.getElementById('kaijuOverlay');
-    overlay.classList.remove('active');
-    document.body.classList.remove('shake-screen');
     setTimeout(() => {
-      overlay.querySelectorAll('.claw-scratch').forEach(s => s.remove());
-    }, 300);
-    appendBubble("Containment successful. The monster is back in digital captivity.", false);
+      const scratch = document.createElement('div');
+      scratch.className = 'scratch-mark';
+      scratch.style.top = '50vh';
+      scratch.style.left = '40vw';
+      scratch.style.transform = 'rotate(-45deg)';
+      overlay.appendChild(scratch);
+
+      workspacePanels.forEach(panel => {
+        panel.style.transition = 'transform 0.3s ease, filter 0.3s ease';
+        panel.style.transform = 'translate(10px, -10px) rotate(1deg)';
+        panel.style.filter = 'grayscale(0.8)';
+      });
+    }, 1500);
+
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      overlay.innerHTML = '<div class="walking-cat" id="walkingCat">🐈</div>';
+      
+      workspacePanels.forEach(panel => {
+        panel.style.transform = 'none';
+        panel.style.filter = 'none';
+      });
+
+      alert("🐾 Disaster! The cat completely wrecked this chat session. Forcing a fresh workspace!");
+      createNewSession(false);
+    }, 3200);
   }
 
   function handleSend() {
