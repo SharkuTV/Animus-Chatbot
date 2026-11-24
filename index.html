@@ -5,9 +5,35 @@
   <title>Animus Lecture AI - Multi-Chat Workspace</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
+    :root {
+      --bg-color: #d1d7dc;
+      --panel-bg: #ffffff;
+      --text-main: #212529;
+      --text-muted: #6c757d;
+      --border-color: #e9ecef;
+      --input-bg: #ffffff;
+      --bubble-ai: #ffe3e8;
+      --bubble-ai-text: #212529;
+      --session-bg: #f8f9fa;
+      --session-hover: #e9ecef;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #0f172a;
+      --panel-bg: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      --input-bg: #0f172a;
+      --bubble-ai: #334155;
+      --bubble-ai-text: #f8fafc;
+      --session-bg: #1e293b;
+      --session-hover: #334155;
+    }
+
+    * { box-sizing: border-box; transition: background-color 0.3s ease, color 0.3s ease; }
     body {
-      background-color: #d1d7dc;
+      background-color: var(--bg-color);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       height: 100vh;
@@ -21,12 +47,8 @@
 
     /* --- SLOWER CONTINUOUS VERTICAL SCROLLING ANIMATION --- */
     @keyframes scrollDownLoop {
-      0% {
-        transform: translateY(-110vh);
-      }
-      100% {
-        transform: translateY(110vh);
-      }
+      0% { transform: translateY(-110vh); }
+      100% { transform: translateY(110vh); }
     }
 
     .bg-shape { 
@@ -35,44 +57,18 @@
       pointer-events: none; 
       will-change: transform;
       animation: scrollDownLoop linear infinite;
+      opacity: 0.85;
     }
     
-    .shape-circle-pink { 
-      left: 8%; width: 160px; height: 160px; background-color: #ff75a0; border-radius: 50%; 
-      animation-duration: 42s; animation-delay: 0s;
-    }
-    .shape-rect-yellow { 
-      left: 25%; width: 200px; height: 110px; background-color: #ffcc00; 
-      animation-duration: 48s; animation-delay: -10s;
-    }
-    .shape-square-pink { 
-      left: 45%; width: 120px; height: 120px; background-color: #ff75a0; 
-      animation-duration: 38s; animation-delay: -5s;
-    }
-    .shape-arch-blue { 
-      left: 65%; width: 100px; height: 50px; background-color: #0052ff; border-top-left-radius: 100px; border-top-right-radius: 100px; 
-      animation-duration: 55s; animation-delay: -18s;
-    }
-    .shape-square-green { 
-      left: 82%; width: 130px; height: 130px; background-color: #00a86b; 
-      animation-duration: 45s; animation-delay: -8s;
-    }
-    .shape-bowl-blue { 
-      left: 15%; width: 120px; height: 60px; background-color: #0052ff; border-bottom-left-radius: 120px; border-bottom-right-radius: 120px; 
-      animation-duration: 40s; animation-delay: -22s;
-    }
-    .shape-pill-purple {
-      left: 55%; width: 80px; height: 160px; background-color: #8a4fff; border-radius: 40px;
-      animation-duration: 50s; animation-delay: -15s;
-    }
-    .shape-floating-ring {
-      left: 90%; width: 100px; height: 100px; border: 16px solid #ff75a0; border-radius: 50%;
-      animation-duration: 35s; animation-delay: -6s;
-    }
-    .shape-small-cyan {
-      left: 35%; width: 60px; height: 60px; background-color: #00bcd4; border-radius: 14px;
-      animation-duration: 46s; animation-delay: -25s;
-    }
+    .shape-circle-pink { left: 8%; width: 160px; height: 160px; background-color: #ff75a0; border-radius: 50%; animation-duration: 42s; animation-delay: 0s; }
+    .shape-rect-yellow { left: 25%; width: 200px; height: 110px; background-color: #ffcc00; animation-duration: 48s; animation-delay: -10s; }
+    .shape-square-pink { left: 45%; width: 120px; height: 120px; background-color: #ff75a0; animation-duration: 38s; animation-delay: -5s; }
+    .shape-arch-blue { left: 65%; width: 100px; height: 50px; background-color: #0052ff; border-top-left-radius: 100px; border-top-right-radius: 100px; animation-duration: 55s; animation-delay: -18s; }
+    .shape-square-green { left: 82%; width: 130px; height: 130px; background-color: #00a86b; animation-duration: 45s; animation-delay: -8s; }
+    .shape-bowl-blue { left: 15%; width: 120px; height: 60px; background-color: #0052ff; border-bottom-left-radius: 120px; border-bottom-right-radius: 120px; animation-duration: 40s; animation-delay: -22s; }
+    .shape-pill-purple { left: 55%; width: 80px; height: 160px; background-color: #8a4fff; border-radius: 40px; animation-duration: 50s; animation-delay: -15s; }
+    .shape-floating-ring { left: 90%; width: 100px; height: 100px; border: 16px solid #ff75a0; border-radius: 50%; animation-duration: 35s; animation-delay: -6s; }
+    .shape-small-cyan { left: 35%; width: 60px; height: 60px; background-color: #00bcd4; border-radius: 14px; animation-duration: 46s; animation-delay: -25s; }
 
     .workspace {
       display: grid;
@@ -84,27 +80,28 @@
       z-index: 1;
     }
     .panel {
-      background: white;
+      background: var(--panel-bg);
       border-radius: 20px;
       padding: 18px;
       display: flex;
       flex-direction: column;
       box-shadow: 0 6px 15px rgba(0,0,0,0.08);
       overflow: hidden;
+      border: 1px solid var(--border-color);
     }
-    h2 { margin-top: 0; font-size: 1.1rem; color: #333; display: flex; justify-content: space-between; align-items: center; }
+    h2 { margin-top: 0; font-size: 1.1rem; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
     .sidebar-list {
       flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;
     }
     .session-item {
       display: flex; justify-content: space-between; align-items: center; padding: 8px 10px;
-      border-radius: 10px; background: #f8f9fa; cursor: pointer; font-size: 0.9rem; color: #495057; border: 1px solid #e9ecef;
+      border-radius: 10px; background: var(--session-bg); cursor: pointer; font-size: 0.9rem; color: var(--text-main); border: 1px solid var(--border-color);
     } 
-    .session-item:hover { background: #e9ecef; }
+    .session-item:hover { background: var(--session-hover); }
     .session-item.active { background: #0052ff; color: white; border-color: #0052ff; font-weight: 600; }
     .session-item.active .delete-btn { color: #ffcccc; }
     .session-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
-    .delete-btn { background: none; border: none; color: #adb5bd; cursor: pointer; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; }
+    .delete-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; }
     .delete-btn:hover { background: rgba(0,0,0,0.1); color: #dc3545; }
     .new-chat-btn {
       background: #0052ff; color: white; border: none; padding: 10px; border-radius: 10px;
@@ -112,8 +109,8 @@
     }
     .new-chat-btn:hover { background: #0040cc; }
     .notes-content {
-      flex-grow: 1; overflow-y: auto; background: #f8f9fa; border-radius: 12px;
-      padding: 14px; margin-bottom: 10px; font-size: 0.9rem; line-height: 1.4; border: 1px solid #e9ecef;
+      flex-grow: 1; overflow-y: auto; background: var(--session-bg); border-radius: 12px;
+      padding: 14px; margin-bottom: 10px; font-size: 0.9rem; line-height: 1.4; border: 1px solid var(--border-color); color: var(--text-main);
     }
     .notes-section { margin-bottom: 15px; }
     .notes-section h3 { font-size: 0.9rem; color: #0052ff; margin-bottom: 5px; }
@@ -123,24 +120,24 @@
     }
     .chunk-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
     .chunk-tab {
-      background: #e9ecef; border: 1px solid #ced4da; padding: 4px 10px; border-radius: 6px;
-      font-size: 0.78rem; font-weight: 600; cursor: pointer; color: #495057; white-space: nowrap;
+      background: var(--session-bg); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer; color: var(--text-main); white-space: nowrap;
     }
-    .chunk-tab:hover { background: #dee2e6; }
+    .chunk-tab:hover { background: var(--session-hover); }
     .chunk-tab.active { background: #0052ff; color: white; border-color: #0052ff; }
 
     .message-area {
       flex-grow: 1; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column;
-      gap: 12px; background: #f8f9fa; border-radius: 12px; padding: 14px; border: 1px solid #e9ecef; margin-bottom: 12px;
+      gap: 12px; background: var(--session-bg); border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); margin-bottom: 12px;
     }
     .ai-bubble, .user-bubble { padding: 10px 14px; border-radius: 14px; max-width: 80%; word-break: break-word; font-size: 0.9rem; line-height: 1.4; }
-    .ai-bubble { background: #ffe3e8; color: #212529; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .ai-bubble { background: var(--bubble-ai); color: var(--bubble-ai-text); align-self: flex-start; border-bottom-left-radius: 4px; }
     .user-bubble { background: #0052ff; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .input-group { display: flex; gap: 8px; align-items: center; }
-    .input-group input { flex-grow: 1; padding: 10px 16px; border-radius: 30px; border: 1px solid #ced4da; outline: none; font-size: 0.95rem; }
+    .input-group input { flex-grow: 1; padding: 10px 16px; border-radius: 30px; border: 1px solid var(--border-color); outline: none; font-size: 0.95rem; background: var(--input-bg); color: var(--text-main); }
     .btn { border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-    .mic-btn { background: #ffc107; color: #000; }
-    .mic-btn.recording { background: #dc3545; color: white; animation: pulse 1.5s infinite; }
+    .mic-btn { background: #ffc107; color: #000; position: relative; }
+    .mic-btn.recording { background: #dc3545; color: white; box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); animation: micPulse 1.5s infinite; }
     .pause-btn { background: #6c757d; color: white; display: none; }
     .pause-btn.paused { background: #00a86b; }
     .flag-btn {
@@ -149,21 +146,32 @@
     }
     .flag-btn:hover { background: #ffe8a1; }
     .send-btn { background: #0052ff; color: white; }
-    .action-btns { display: flex; gap: 6px; }
-    .utility-btn { background: #e9ecef; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600; color: #495057; }
-    .utility-btn:hover { background: #dee2e6; }
-    .quiz-btn { background: #e7f0ff; color: #0052ff; }
+    .action-btns { display: flex; gap: 6px; align-items: center; }
+    .utility-btn { background: var(--session-bg); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600; color: var(--text-main); }
+    .utility-btn:hover { background: var(--session-hover); }
+    .quiz-btn { background: #e7f0ff; color: #0052ff; border-color: #b0d0ff; }
     .quiz-btn:hover { background: #d0e2ff; }
+    .theme-btn { font-size: 0.9rem; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--session-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .theme-btn:hover { background: var(--session-hover); }
+
+    /* Waveform / Visualizer Canvas */
+    .waveform-canvas { width: 40px; height: 20px; display: none; vertical-align: middle; margin-left: 6px; }
+
     .recording-controls { display: flex; justify-content: space-between; align-items: center; padding-top: 5px; gap: 8px; }
     .recording-status { font-size: 0.85rem; color: #dc3545; font-weight: bold; display: none; align-items: center; gap: 6px; }
     .recording-status.paused-status { color: #6c757d; }
     .control-buttons { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-    @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
+    
+    @keyframes micPulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+      70% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
   </style>
 </head>
 <body>
 
-<!-- Background Geometric Shapes with Continuous Downward Scroll -->
+<!-- Background Geometric Shapes -->
 <div class="bg-shape shape-circle-pink"></div>
 <div class="bg-shape shape-rect-yellow"></div>
 <div class="bg-shape shape-square-pink"></div>
@@ -176,7 +184,10 @@
 
 <div class="workspace">
   <div class="panel">
-    <h2>💬 Chats</h2>
+    <h2>
+      <span>💬 Chats</span>
+      <button class="theme-btn" id="themeToggleBtn" title="Toggle Theme">🌓</button>
+    </h2>
     <div class="sidebar-list" id="sessionList"></div>
     <button class="new-chat-btn" id="newChatBtn">+ New Chat</button>
   </div>
@@ -198,10 +209,10 @@
         <h3>AI Summary & Key Takeaways</h3>
         <div id="summaryDisplay">No lecture analyzed yet. Click record and stop when finished!</div>
       </div>
-      <hr style="border:0; border-top:1px solid #dee2e6; margin: 12px 0;">
+      <hr style="border:0; border-top:1px solid var(--border-color); margin: 12px 0;">
       <div class="notes-section">
         <h3>Live / Raw Transcript</h3>
-        <div id="transcriptDisplay" style="color: #6c757d; font-style: italic;">Real-time transcript and uploaded transcript will appear here...</div>
+        <div id="transcriptDisplay" style="color: var(--text-muted); font-style: italic;">Real-time transcript and uploaded transcript will appear here...</div>
       </div>
     </div>
     
@@ -210,6 +221,7 @@
     <div class="recording-controls">
       <div class="recording-status" id="recStatus">
         <span id="recDot">🔴</span> <span id="timer">00:00</span>
+        <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
       </div>
       <div class="control-buttons">
         <button class="flag-btn" id="flagBtn" onclick="addBookmark()" title="Flag moment">🚩 Flag Moment</button>
@@ -220,7 +232,7 @@
   </div>
 
   <div class="panel">
-    <h2 id="activeChatTitle">Chat Workspace</h2>
+    <h2 id="activeChatTitle" style="color: var(--text-main);">Chat Workspace</h2>
     <div class="message-area" id="chatArea">
       <div class="ai-bubble">Hello! Select or create a chat session on the left to get started.</div>
     </div>
@@ -239,6 +251,7 @@
   }
 
   const STORAGE_SESSIONS_KEY = `animus_sessions_${userId}`;
+  const THEME_KEY = 'animus_theme';
 
   let currentSessionId = null;
   let sessions = {};
@@ -255,7 +268,29 @@
   let liveTranscriptText = "";
   let sessionBookmarks = [];
 
+  // Web Audio Visualizer variables
+  let audioCtx = null;
+  let analyser = null;
+  let microphoneStreamSource = null;
+  let visualizerAnimId = null;
+
   const CHUNK_DURATION_SECONDS = 15 * 60;
+
+  // Theme Initialization
+  function initTheme() {
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem(THEME_KEY, next);
+  }
+
+  document.getElementById('themeToggleBtn').onclick = toggleTheme;
+  initTheme();
 
   function defaultNotes() {
     return { chunks: [], activeChunkIndex: 0 };
@@ -295,7 +330,7 @@
       if (summaryDisplay) summaryDisplay.innerHTML = "No lecture analyzed yet. Click record and stop when finished!";
       if (transcriptDisplay) {
         transcriptDisplay.innerText = "Real-time transcript and uploaded transcript will appear here...";
-        transcriptDisplay.style.color = "#6c757d";
+        transcriptDisplay.style.color = "var(--text-muted)";
         transcriptDisplay.style.fontStyle = "italic";
       }
       renderBookmarksUI([]);
@@ -307,11 +342,11 @@
     if (transcriptDisplay) {
       if (activeChunk.transcript) {
         transcriptDisplay.innerText = activeChunk.transcript;
-        transcriptDisplay.style.color = "#212529";
+        transcriptDisplay.style.color = "var(--text-main)";
         transcriptDisplay.style.fontStyle = "normal";
       } else {
         transcriptDisplay.innerText = "(No transcript)";
-        transcriptDisplay.style.color = "#6c757d";
+        transcriptDisplay.style.color = "var(--text-muted)";
         transcriptDisplay.style.fontStyle = "italic";
       }
     }
@@ -373,7 +408,7 @@
       if (finalSegments) liveTranscriptText += finalSegments;
       const transcriptDisplay = document.getElementById('transcriptDisplay');
       if (transcriptDisplay) {
-        transcriptDisplay.style.color = "#212529";
+        transcriptDisplay.style.color = "var(--text-main)";
         transcriptDisplay.style.fontStyle = "normal";
         transcriptDisplay.innerText = liveTranscriptText + (interimText ? " [" + interimText + "]" : "");
       }
@@ -643,6 +678,7 @@
     const recStatus = document.getElementById('recStatus');
     clearInterval(timerInterval);
     if (recStatus) recStatus.style.display = "none";
+    stopVisualizer();
   }
 
   function addBookmark() {
@@ -668,6 +704,7 @@
       pauseBtn.classList.add('paused');
       recDot.innerText = "⏸️";
       recStatus.classList.add('paused-status');
+      if (audioCtx) audioCtx.suspend();
     } else {
       mediaRecorder.resume();
       if (recognition) { try { recognition.start(); } catch (e) {} }
@@ -676,6 +713,7 @@
       pauseBtn.classList.remove('paused');
       recDot.innerText = "🔴";
       recStatus.classList.remove('paused-status');
+      if (audioCtx) audioCtx.resume();
     }
   }
 
@@ -705,6 +743,7 @@
         flagBtn.style.display = "flex";
 
         startTimer();
+        setupAudioVisualizer(mediaStream);
         startChunkRecorder();
       } catch (err) {
         alert("Microphone access denied.");
@@ -724,6 +763,53 @@
     }
   }
 
+  // Web Audio API Visualizer setup
+  function setupAudioVisualizer(stream) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      microphoneStreamSource = audioCtx.createMediaStreamSource(stream);
+      microphoneStreamSource.connect(analyser);
+      analyser.fftSize = 64;
+
+      const canvas = document.getElementById('waveformCanvas');
+      canvas.style.display = 'inline-block';
+      const canvasCtx = canvas.getContext('2d');
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      function drawWaveform() {
+        if (!isRecording) return;
+        visualizerAnimId = requestAnimationFrame(drawWaveform);
+        analyser.getByteFrequencyData(dataArray);
+
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        canvasCtx.fillStyle = '#dc3545';
+
+        let barWidth = canvas.width / bufferLength * 2.5;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          let barHeight = (dataArray[i] / 255) * canvas.height;
+          canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+          x += barWidth + 1;
+        }
+      }
+      drawWaveform();
+    } catch (e) {
+      console.error("Visualizer error:", e);
+    }
+  }
+
+  function stopVisualizer() {
+    if (visualizerAnimId) cancelAnimationFrame(visualizerAnimId);
+    const canvas = document.getElementById('waveformCanvas');
+    if (canvas) canvas.style.display = 'none';
+    if (audioCtx && audioCtx.state !== 'closed') {
+      audioCtx.close();
+    }
+  }
+
   function startChunkRecorder() {
     if (!isRecording || !mediaStream) return;
 
@@ -734,7 +820,7 @@
     const transcriptDisplay = document.getElementById('transcriptDisplay');
     if (transcriptDisplay) {
       transcriptDisplay.innerText = "Listening in real-time...";
-      transcriptDisplay.style.color = "#6c757d";
+      transcriptDisplay.style.color = "var(--text-muted)";
       transcriptDisplay.style.fontStyle = "italic";
     }
 
