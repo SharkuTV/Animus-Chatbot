@@ -19,14 +19,51 @@
       overflow: hidden;
     }
 
-    .bg-shape { position: absolute; z-index: -1; pointer-events: none; }
-    .shape-circle-pink { top: 20px; left: 30px; width: 180px; height: 180px; background-color: #ff75a0; border-radius: 50%; }
-    .shape-rect-yellow { top: 40px; right: 50px; width: 220px; height: 120px; background-color: #ffcc00; }
-    .shape-square-pink { top: 120px; right: 230px; width: 130px; height: 130px; background-color: #ff75a0; }
-    .shape-arch-blue { top: 220px; right: 140px; width: 100px; height: 50px; background-color: #0052ff; border-top-left-radius: 100px; border-top-right-radius: 100px; }
-    .shape-square-green { bottom: 30px; left: 40px; width: 140px; height: 140px; background-color: #00a86b; }
-    .shape-bowl-blue { bottom: 170px; left: 40px; width: 130px; height: 65px; background-color: #0052ff; border-bottom-left-radius: 130px; border-bottom-right-radius: 130px; }
-    .shape-triangle-blue { bottom: 0; right: 0; width: 0; height: 0; border-left: 170px solid transparent; border-bottom: 170px solid #0052ff; }
+    /* --- ANIMATED BACKGROUND GEOMETRIC SHAPES --- */
+    @keyframes floatSlowUp {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-28px); }
+    }
+
+    @keyframes floatSlowDown {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(28px); }
+    }
+
+    .bg-shape { 
+      position: absolute; 
+      z-index: -1; 
+      pointer-events: none; 
+      will-change: transform;
+    }
+    .shape-circle-pink { 
+      top: 20px; left: 30px; width: 180px; height: 180px; background-color: #ff75a0; border-radius: 50%; 
+      animation: floatSlowDown 11s ease-in-out infinite;
+    }
+    .shape-rect-yellow { 
+      top: 40px; right: 50px; width: 220px; height: 120px; background-color: #ffcc00; 
+      animation: floatSlowUp 13s ease-in-out infinite;
+    }
+    .shape-square-pink { 
+      top: 120px; right: 230px; width: 130px; height: 130px; background-color: #ff75a0; 
+      animation: floatSlowDown 9s ease-in-out infinite;
+    }
+    .shape-arch-blue { 
+      top: 220px; right: 140px; width: 100px; height: 50px; background-color: #0052ff; border-top-left-radius: 100px; border-top-right-radius: 100px; 
+      animation: floatSlowUp 10s ease-in-out infinite;
+    }
+    .shape-square-green { 
+      bottom: 30px; left: 40px; width: 140px; height: 140px; background-color: #00a86b; 
+      animation: floatSlowUp 12s ease-in-out infinite;
+    }
+    .shape-bowl-blue { 
+      bottom: 170px; left: 40px; width: 130px; height: 65px; background-color: #0052ff; border-bottom-left-radius: 130px; border-bottom-right-radius: 130px; 
+      animation: floatSlowDown 14s ease-in-out infinite;
+    }
+    .shape-triangle-blue { 
+      bottom: -20px; right: 0; width: 0; height: 0; border-left: 170px solid transparent; border-bottom: 170px solid #0052ff; 
+      animation: floatSlowUp 15s ease-in-out infinite;
+    }
 
     .workspace {
       display: grid;
@@ -473,7 +510,6 @@
     }
   }
 
-  // Auto-Title Helper Function
   async function checkAndAutoTitle(textSnippet) {
     const activeSession = sessions[currentSessionId];
     if (!activeSession) return;
@@ -514,7 +550,7 @@
     appendBubble(message, true);
     activeSession.messages.push({ text: message, isUser: true, isMarkdown: false });
     saveToLocalStorage();
-    checkAndAutoTitle(message); // Trigger auto-titling on first message
+    checkAndAutoTitle(message);
 
     const thinking = appendBubble("Animus is thinking...", false);
 
@@ -737,7 +773,7 @@
             }
           }
 
-          checkAndAutoTitle(data.transcript); // Trigger auto-titling on lecture chunk completion
+          checkAndAutoTitle(data.transcript);
 
           if (isRecording) {
             startChunkRecorder();
