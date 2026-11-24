@@ -19,7 +19,6 @@ app.add_middleware(
 )
 
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-
 users_db = {}
 
 def get_user_store(user_id: str):
@@ -27,7 +26,7 @@ def get_user_store(user_id: str):
         users_db[user_id] = {"sessions": {}}
     return users_db[user_id]
 
-def ensure_session(store: dict, session_id: str, title: str = "Restored Study Chat"):
+def ensure_session(store: dict, session_id: str, title: str = "Study Session 1"):
     if session_id not in store["sessions"]:
         store["sessions"][session_id] = {
             "title": title,
@@ -46,6 +45,11 @@ class ChatMessageRequest(BaseModel):
     user_message: str
     transcript_context: Optional[str] = None
     history: Optional[list] = None
+
+class AutoTitleRequest(BaseModel):
+    user_id: str
+    session_id: str
+    text_content: str
 
 @app.get("/")
 def serve_frontend():
@@ -76,6 +80,30 @@ def delete_session(session_id: str, user_id: str):
         del store["sessions"][session_id]
         return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Session not found")
+
+@app.post("/auto-title")
+async def auto_title(req: AutoTitleRequest):
+    store = get_user_store(req.user_id)
+    session = ensure_session(store, req.session_id)
+    
+    try:
+        completion = groq_client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Generate a short, punchy 3 to 5 word title summarizing the main topic of the following text. Return ONLY the title text, with no quotes or extra formatting."
+                },
+                {"role": "user", "content": req.text_content[:2000]}
+            ],
+            temperature=0.5,
+        )
+        new_title = completion.choices[0].message.content.strip().replace('"', '')
+        if new_title:
+            session["title"] = new_title
+        return {"title": session["title"]}
+    except Exception as e:
+        return {"title": session["title"]}
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatMessageRequest):
@@ -141,7 +169,6 @@ async def upload_audio(
             )
         transcript_text = transcription.text.strip()
         
-        # Append chunk transcript to session transcript history
         if transcript_text:
             if session["transcript"]:
                 session["transcript"] += "\n\n" + transcript_text
@@ -178,6 +205,7 @@ async def upload_audio(
             "summary": summary_completion.choices[0].message.content,
         }
     except Exception as e:
+        print(f"UPLOAD AUDIO ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if temp_path and os.path.exists(temp_path):
