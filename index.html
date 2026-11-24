@@ -473,18 +473,48 @@
     }
   }
 
+  // Auto-Title Helper Function
+  async function checkAndAutoTitle(textSnippet) {
+    const activeSession = sessions[currentSessionId];
+    if (!activeSession) return;
+    
+    if (activeSession.title.startsWith("Study Session") || activeSession.title.startsWith("New Study")) {
+      try {
+        const res = await fetch('/auto-title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            session_id: currentSessionId,
+            text_content: textSnippet
+          })
+        });
+        const data = await res.json();
+        if (data.title) {
+          activeSession.title = data.title;
+          saveToLocalStorage();
+          renderSessionList();
+          const activeChatTitle = document.getElementById('activeChatTitle');
+          if (activeChatTitle) activeChatTitle.innerText = data.title;
+        }
+      } catch (e) {
+        console.error("Auto-title failed:", e);
+      }
+    }
+  }
+
   async function sendMessageText(message) {
     if (!message || !currentSessionId) return;
     const activeSession = sessions[currentSessionId];
     if (!activeSession.messages) activeSession.messages = [];
     const sessionNotes = ensureSessionNotes(activeSession);
 
-    // Safely map chunks even if chunks array is empty
     const combinedTranscript = (sessionNotes.chunks || []).map(c => c.transcript).join("\n\n");
 
     appendBubble(message, true);
     activeSession.messages.push({ text: message, isUser: true, isMarkdown: false });
     saveToLocalStorage();
+    checkAndAutoTitle(message); // Trigger auto-titling on first message
 
     const thinking = appendBubble("Animus is thinking...", false);
 
@@ -706,6 +736,8 @@
               renderNotesForSession(sessions[targetSessionId]);
             }
           }
+
+          checkAndAutoTitle(data.transcript); // Trigger auto-titling on lecture chunk completion
 
           if (isRecording) {
             startChunkRecorder();
