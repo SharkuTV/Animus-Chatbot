@@ -120,8 +120,13 @@ async def chat_endpoint(req: ChatMessageRequest):
 
     system_prompt = (
         "You are Animus, an encouraging, clear, and interactive AI study and lecture assistant. "
-        "If the user asks to be quizzed, ask 1 to 3 clear questions at a time, wait for their answer, "
-        "and grade/explain their response constructively."
+        "When the user asks to be quizzed, you MUST generate exactly 1 question based on the lecture transcript. "
+        "You must format your response strictly as a JSON object (without markdown code blocks) in this exact format: "
+        "{\"type\": \"mcq\", \"question\": \"Question text here?\", \"options\": [\"A) ...\", \"B) ...\", \"C) ...\"], \"correct\": \"A\"} "
+        "OR for short answer: "
+        "{\"type\": \"short\", \"question\": \"Question text here?\"} "
+        "Do not include any extra conversational text when generating a quiz question. "
+        "For regular conversation, answer normally in markdown."
     )
     if session.get("transcript"):
         system_prompt += (
