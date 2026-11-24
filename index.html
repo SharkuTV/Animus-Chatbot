@@ -19,15 +19,14 @@
       overflow: hidden;
     }
 
-    /* --- ANIMATED BACKGROUND GEOMETRIC SHAPES --- */
-    @keyframes floatSlowUp {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-28px); }
-    }
-
-    @keyframes floatSlowDown {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(28px); }
+    /* --- INFINITE VERTICAL SCROLLING ANIMATION --- */
+    @keyframes scrollDownLoop {
+      0% {
+        transform: translateY(-110vh);
+      }
+      100% {
+        transform: translateY(110vh);
+      }
     }
 
     .bg-shape { 
@@ -35,34 +34,45 @@
       z-index: -1; 
       pointer-events: none; 
       will-change: transform;
+      animation: scrollDownLoop linear infinite;
     }
+    
+    /* Staggered durations and left positions for a natural cascading look */
     .shape-circle-pink { 
-      top: 20px; left: 30px; width: 180px; height: 180px; background-color: #ff75a0; border-radius: 50%; 
-      animation: floatSlowDown 11s ease-in-out infinite;
+      left: 8%; width: 160px; height: 160px; background-color: #ff75a0; border-radius: 50%; 
+      animation-duration: 18s; animation-delay: 0s;
     }
     .shape-rect-yellow { 
-      top: 40px; right: 50px; width: 220px; height: 120px; background-color: #ffcc00; 
-      animation: floatSlowUp 13s ease-in-out infinite;
+      left: 25%5; width: 200px; height: 110px; background-color: #ffcc00; 
+      animation-duration: 22s; animation-delay: -5s;
     }
     .shape-square-pink { 
-      top: 120px; right: 230px; width: 130px; height: 130px; background-color: #ff75a0; 
-      animation: floatSlowDown 9s ease-in-out infinite;
+      left: 45%; width: 120px; height: 120px; background-color: #ff75a0; 
+      animation-duration: 15s; animation-delay: -2s;
     }
     .shape-arch-blue { 
-      top: 220px; right: 140px; width: 100px; height: 50px; background-color: #0052ff; border-top-left-radius: 100px; border-top-right-radius: 100px; 
-      animation: floatSlowUp 10s ease-in-out infinite;
+      left: 65%; width: 100px; height: 50px; background-color: #0052ff; border-top-left-radius: 100px; border-top-right-radius: 100px; 
+      animation-duration: 25s; animation-delay: -8s;
     }
     .shape-square-green { 
-      bottom: 30px; left: 40px; width: 140px; height: 140px; background-color: #00a86b; 
-      animation: floatSlowUp 12s ease-in-out infinite;
+      left: 82%; width: 130px; height: 130px; background-color: #00a86b; 
+      animation-duration: 20s; animation-delay: -4s;
     }
     .shape-bowl-blue { 
-      bottom: 170px; left: 40px; width: 130px; height: 65px; background-color: #0052ff; border-bottom-left-radius: 130px; border-bottom-right-radius: 130px; 
-      animation: floatSlowDown 14s ease-in-out infinite;
+      left: 15%; width: 120px; height: 60px; background-color: #0052ff; border-bottom-left-radius: 120px; border-bottom-right-radius: 120px; 
+      animation-duration: 16s; animation-delay: -10s;
     }
-    .shape-triangle-blue { 
-      bottom: -20px; right: 0; width: 0; height: 0; border-left: 170px solid transparent; border-bottom: 170px solid #0052ff; 
-      animation: floatSlowUp 15s ease-in-out infinite;
+    .shape-pill-purple {
+      left: 55%; width: 80px; height: 160px; background-color: #8a4fff; border-radius: 40px;
+      animation-duration: 21s; animation-delay: -7s;
+    }
+    .shape-floating-ring {
+      left: 90%; width: 100px; height: 100px; border: 16px solid #ff75a0; border-radius: 50%;
+      animation-duration: 14s; animation-delay: -3s;
+    }
+    .shape-small-cyan {
+      left: 35%; width: 60px; height: 60px; background-color: #00bcd4; border-radius: 14px;
+      animation-duration: 19s; animation-delay: -12s;
     }
 
     .workspace {
@@ -154,13 +164,16 @@
 </head>
 <body>
 
+<!-- Background Geometric Shapes with Continuous Downward Scroll -->
 <div class="bg-shape shape-circle-pink"></div>
 <div class="bg-shape shape-rect-yellow"></div>
 <div class="bg-shape shape-square-pink"></div>
 <div class="bg-shape shape-arch-blue"></div>
-<div class="bg-shape shape-bowl-blue"></div>
 <div class="bg-shape shape-square-green"></div>
-<div class="bg-shape shape-triangle-blue"></div>
+<div class="bg-shape shape-bowl-blue"></div>
+<div class="bg-shape shape-pill-purple"></div>
+<div class="bg-shape shape-floating-ring"></div>
+<div class="bg-shape shape-small-cyan"></div>
 
 <div class="workspace">
   <div class="panel">
