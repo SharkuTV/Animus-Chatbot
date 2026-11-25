@@ -189,7 +189,7 @@
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
     }
 
-    /* --- GEOMETRIC CAT & DESTRUCTION EASTER EGG --- */
+    /* --- STYLIZED GEOMETRIC CAT & DESTRUCTION EASTER EGG --- */
     #catOverlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -207,7 +207,7 @@
       animation: walkAcross 3.2s linear forwards;
     }
     @keyframes walkAcross {
-      0% { left: -150px; transform: scaleX(1) translateY(0); }
+      0% { left: -180px; transform: scaleX(1) translateY(0); }
       12% { transform: scaleX(1) translateY(-6px) rotate(-2deg); }
       25% { transform: scaleX(1) translateY(0) rotate(0deg); }
       37% { transform: scaleX(1) translateY(-6px) rotate(-2deg); }
@@ -221,89 +221,117 @@
 
     .geo-cat {
       position: relative;
-      width: 120px;
-      height: 120px;
+      width: 140px;
+      height: 100px;
     }
     .cat-head {
       position: absolute;
-      top: 30px;
-      left: 20px;
-      width: 80px;
-      height: 70px;
+      top: 25px;
+      left: 10px;
+      width: 50px;
+      height: 45px;
       background-color: var(--shape-pink);
-      border-radius: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      z-index: 2;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 3;
     }
     .cat-ear-left {
       position: absolute;
-      top: 10px;
-      left: 22px;
+      top: 5px;
+      left: 12px;
       width: 0;
       height: 0;
-      border-left: 15px solid transparent;
-      border-right: 15px solid transparent;
-      border-bottom: 30px solid var(--shape-pink);
-      z-index: 1;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 22px solid var(--shape-pink);
+      z-index: 2;
     }
     .cat-ear-right {
       position: absolute;
-      top: 10px;
-      right: 22px;
+      top: 5px;
+      left: 38px;
       width: 0;
       height: 0;
-      border-left: 15px solid transparent;
-      border-right: 15px solid transparent;
-      border-bottom: 30px solid var(--shape-pink);
-      z-index: 1;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 22px solid var(--shape-pink);
+      z-index: 2;
     }
     .cat-eye-left {
       position: absolute;
-      top: 25px;
-      left: 18px;
-      width: 10px;
-      height: 10px;
+      top: 15px;
+      left: 12px;
+      width: 6px;
+      height: 6px;
       background-color: var(--panel-bg);
       border-radius: 50%;
     }
     .cat-eye-right {
       position: absolute;
-      top: 25px;
-      right: 18px;
-      width: 10px;
-      height: 10px;
+      top: 15px;
+      right: 12px;
+      width: 6px;
+      height: 6px;
       background-color: var(--panel-bg);
       border-radius: 50%;
+    }
+    .cat-nose {
+      position: absolute;
+      top: 26px;
+      left: 22px;
+      width: 6px;
+      height: 4px;
+      background-color: var(--panel-bg);
+      border-radius: 2px;
     }
     .cat-body {
       position: absolute;
       bottom: 5px;
-      left: 35px;
-      width: 50px;
-      height: 45px;
+      left: 45px;
+      width: 70px;
+      height: 50px;
       background-color: var(--shape-purple);
-      border-radius: 25px 25px 6px 6px;
+      border-radius: 35px 35px 10px 10px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 2;
+    }
+    .cat-tail {
+      position: absolute;
+      bottom: 5px;
+      right: 10px;
+      width: 25px;
+      height: 45px;
+      border: 8px solid var(--shape-purple);
+      border-top: none;
+      border-left: none;
+      border-radius: 0 25px 25px 0;
+      transform-origin: bottom left;
+      animation: tailSwish 0.6s ease-in-out infinite alternate;
       z-index: 1;
+    }
+    @keyframes tailSwish {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(15deg); }
     }
 
     /* Striding Legs */
-    .cat-leg-left, .cat-leg-right {
+    .cat-leg-front, .cat-leg-back {
       position: absolute;
-      bottom: -10px;
-      width: 10px;
-      height: 18px;
+      bottom: -8px;
+      width: 9px;
+      height: 16px;
       background-color: var(--shape-purple);
-      border-radius: 5px;
+      border-radius: 4px;
       transform-origin: top center;
       animation: legStride 0.25s ease-in-out infinite alternate;
+      z-index: 3;
     }
-    .cat-leg-left { left: 8px; }
-    .cat-leg-right { right: 8px; animation-delay: 0.25s; }
+    .cat-leg-front { left: 15px; }
+    .cat-leg-back { right: 15px; animation-delay: 0.25s; }
 
     @keyframes legStride {
-      0% { transform: rotate(-20deg); }
-      100% { transform: rotate(20deg); }
+      0% { transform: rotate(-18deg); }
+      100% { transform: rotate(18deg); }
     }
 
     .scratch-mark {
@@ -403,11 +431,13 @@
       <div class="cat-head">
         <div class="cat-eye-left"></div>
         <div class="cat-eye-right"></div>
+        <div class="cat-nose"></div>
       </div>
       <div class="cat-body">
-        <div class="cat-leg-left"></div>
-        <div class="cat-leg-right"></div>
+        <div class="cat-leg-front"></div>
+        <div class="cat-leg-back"></div>
       </div>
+      <div class="cat-tail"></div>
     </div>
   </div>
 </div>
@@ -883,7 +913,7 @@
     const workspacePanels = document.querySelectorAll('.panel');
 
     setTimeout(() => {
-      // Spawn three neon scratch marks across the chat panel
+      // Spawn scratch marks
       for (let i = 0; i < 3; i++) {
         const scratch = document.createElement('div');
         scratch.className = 'scratch-mark';
@@ -910,11 +940,13 @@
             <div class="cat-head">
               <div class="cat-eye-left"></div>
               <div class="cat-eye-right"></div>
+              <div class="cat-nose"></div>
             </div>
             <div class="cat-body">
-              <div class="cat-leg-left"></div>
-              <div class="cat-leg-right"></div>
+              <div class="cat-leg-front"></div>
+              <div class="cat-leg-back"></div>
             </div>
+            <div class="cat-tail"></div>
           </div>
         </div>
       `;
