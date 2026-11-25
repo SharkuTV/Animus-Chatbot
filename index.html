@@ -199,17 +199,24 @@
       pointer-events: none;
       overflow: hidden;
     }
+
+    /* Walking & Bobbing Animation */
     .walking-cat {
       position: absolute;
-      bottom: 20px;
+      bottom: 25px;
       animation: walkAcross 3.2s linear forwards;
     }
     @keyframes walkAcross {
-      0% { left: -150px; transform: scaleX(1); }
-      45% { left: 45vw; transform: scaleX(1) translateY(0); }
-      50% { left: 45vw; transform: scaleX(-1) translateY(-15px) rotate(8deg); }
-      55% { left: 45vw; transform: scaleX(-1) translateY(0) rotate(0deg); }
-      100% { left: 105vw; transform: scaleX(-1); }
+      0% { left: -150px; transform: scaleX(1) translateY(0); }
+      12% { transform: scaleX(1) translateY(-6px) rotate(-2deg); }
+      25% { transform: scaleX(1) translateY(0) rotate(0deg); }
+      37% { transform: scaleX(1) translateY(-6px) rotate(-2deg); }
+      48% { left: 45vw; transform: scaleX(1) translateY(0) rotate(0deg); }
+      52% { left: 45vw; transform: scaleX(-1) translateY(-10px) rotate(6deg); } /* Turn around */
+      56% { left: 45vw; transform: scaleX(-1) translateY(0) rotate(0deg); }
+      70% { transform: scaleX(-1) translateY(-6px) rotate(2deg); }
+      85% { transform: scaleX(-1) translateY(0) rotate(0deg); }
+      100% { left: 105vw; transform: scaleX(-1) translateY(-6px); }
     }
 
     .geo-cat {
@@ -226,6 +233,7 @@
       background-color: var(--shape-pink);
       border-radius: 20px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 2;
     }
     .cat-ear-left {
       position: absolute;
@@ -236,6 +244,7 @@
       border-left: 15px solid transparent;
       border-right: 15px solid transparent;
       border-bottom: 30px solid var(--shape-pink);
+      z-index: 1;
     }
     .cat-ear-right {
       position: absolute;
@@ -246,6 +255,7 @@
       border-left: 15px solid transparent;
       border-right: 15px solid transparent;
       border-bottom: 30px solid var(--shape-pink);
+      z-index: 1;
     }
     .cat-eye-left {
       position: absolute;
@@ -267,13 +277,33 @@
     }
     .cat-body {
       position: absolute;
-      bottom: 0;
+      bottom: 5px;
       left: 35px;
       width: 50px;
       height: 45px;
       background-color: var(--shape-purple);
-      border-radius: 25px 25px 0 0;
+      border-radius: 25px 25px 6px 6px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Striding Legs */
+    .cat-leg-left, .cat-leg-right {
+      position: absolute;
+      bottom: -10px;
+      width: 10px;
+      height: 18px;
+      background-color: var(--shape-purple);
+      border-radius: 5px;
+      transform-origin: top center;
+      animation: legStride 0.25s ease-in-out infinite alternate;
+    }
+    .cat-leg-left { left: 8px; }
+    .cat-leg-right { right: 8px; animation-delay: 0.25s; }
+
+    @keyframes legStride {
+      0% { transform: rotate(-20deg); }
+      100% { transform: rotate(20deg); }
     }
 
     .scratch-mark {
@@ -374,7 +404,10 @@
         <div class="cat-eye-left"></div>
         <div class="cat-eye-right"></div>
       </div>
-      <div class="cat-body"></div>
+      <div class="cat-body">
+        <div class="cat-leg-left"></div>
+        <div class="cat-leg-right"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -878,7 +911,10 @@
               <div class="cat-eye-left"></div>
               <div class="cat-eye-right"></div>
             </div>
-            <div class="cat-body"></div>
+            <div class="cat-body">
+              <div class="cat-leg-left"></div>
+              <div class="cat-leg-right"></div>
+            </div>
           </div>
         </div>
       `;
