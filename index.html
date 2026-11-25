@@ -189,7 +189,7 @@
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
     }
 
-    /* --- STYLIZED GEOMETRIC CAT & DESTRUCTION EASTER EGG --- */
+    /* --- REALISTIC VECTOR CAT & DESTRUCTION EASTER EGG --- */
     #catOverlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -200,138 +200,54 @@
       overflow: hidden;
     }
 
-    /* Walking & Bobbing Animation */
+    /* Walking & Turning Animation */
     .walking-cat {
       position: absolute;
       bottom: 25px;
       animation: walkAcross 3.2s linear forwards;
     }
     @keyframes walkAcross {
-      0% { left: -180px; transform: scaleX(1) translateY(0); }
-      12% { transform: scaleX(1) translateY(-6px) rotate(-2deg); }
-      25% { transform: scaleX(1) translateY(0) rotate(0deg); }
-      37% { transform: scaleX(1) translateY(-6px) rotate(-2deg); }
-      48% { left: 45vw; transform: scaleX(1) translateY(0) rotate(0deg); }
-      52% { left: 45vw; transform: scaleX(-1) translateY(-10px) rotate(6deg); } /* Turn around */
-      56% { left: 45vw; transform: scaleX(-1) translateY(0) rotate(0deg); }
-      70% { transform: scaleX(-1) translateY(-6px) rotate(2deg); }
-      85% { transform: scaleX(-1) translateY(0) rotate(0deg); }
-      100% { left: 105vw; transform: scaleX(-1) translateY(-6px); }
+      0% { left: -220px; transform: scaleX(-1) translateY(0); }
+      12% { transform: scaleX(-1) translateY(-4px); }
+      25% { transform: scaleX(-1) translateY(0); }
+      37% { transform: scaleX(-1) translateY(-4px); }
+      48% { left: 45vw; transform: scaleX(-1) translateY(0); }
+      52% { left: 45vw; transform: scaleX(1) translateY(-8px) rotate(-4deg); } /* Turn around */
+      56% { left: 45vw; transform: scaleX(1) translateY(0) rotate(0deg); }
+      70% { transform: scaleX(1) translateY(-4px); }
+      85% { transform: scaleX(1) translateY(0); }
+      100% { left: 105vw; transform: scaleX(1) translateY(-4px); }
     }
 
-    .geo-cat {
-      position: relative;
-      width: 140px;
-      height: 100px;
-    }
-    .cat-head {
-      position: absolute;
-      top: 25px;
-      left: 10px;
-      width: 50px;
-      height: 45px;
-      background-color: var(--shape-pink);
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 3;
-    }
-    .cat-ear-left {
-      position: absolute;
-      top: 5px;
-      left: 12px;
-      width: 0;
-      height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-bottom: 22px solid var(--shape-pink);
-      z-index: 2;
-    }
-    .cat-ear-right {
-      position: absolute;
-      top: 5px;
-      left: 38px;
-      width: 0;
-      height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-bottom: 22px solid var(--shape-pink);
-      z-index: 2;
-    }
-    .cat-eye-left {
-      position: absolute;
-      top: 15px;
-      left: 12px;
-      width: 6px;
-      height: 6px;
-      background-color: var(--panel-bg);
-      border-radius: 50%;
-    }
-    .cat-eye-right {
-      position: absolute;
-      top: 15px;
-      right: 12px;
-      width: 6px;
-      height: 6px;
-      background-color: var(--panel-bg);
-      border-radius: 50%;
-    }
-    .cat-nose {
-      position: absolute;
-      top: 26px;
-      left: 22px;
-      width: 6px;
-      height: 4px;
-      background-color: var(--panel-bg);
-      border-radius: 2px;
-    }
-    .cat-body {
-      position: absolute;
-      bottom: 5px;
-      left: 45px;
-      width: 70px;
-      height: 50px;
-      background-color: var(--shape-purple);
-      border-radius: 35px 35px 10px 10px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      z-index: 2;
-    }
-    .cat-tail {
-      position: absolute;
-      bottom: 5px;
-      right: 10px;
-      width: 25px;
-      height: 45px;
-      border: 8px solid var(--shape-purple);
-      border-top: none;
-      border-left: none;
-      border-radius: 0 25px 25px 0;
-      transform-origin: bottom left;
-      animation: tailSwish 0.6s ease-in-out infinite alternate;
-      z-index: 1;
-    }
-    @keyframes tailSwish {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(15deg); }
+    .vector-cat-wrapper {
+      width: 220px;
+      height: 150px;
+      filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
     }
 
-    /* Striding Legs */
-    .cat-leg-front, .cat-leg-back {
-      position: absolute;
-      bottom: -8px;
-      width: 9px;
-      height: 16px;
-      background-color: var(--shape-purple);
-      border-radius: 4px;
-      transform-origin: top center;
-      animation: legStride 0.25s ease-in-out infinite alternate;
-      z-index: 3;
-    }
-    .cat-leg-front { left: 15px; }
-    .cat-leg-back { right: 15px; animation-delay: 0.25s; }
+    /* Leg Strides */
+    .cat-leg-fl { transform-origin: 68px 98px; animation: strideFront 0.35s ease-in-out infinite alternate; }
+    .cat-leg-fr { transform-origin: 76px 98px; animation: strideFront 0.35s ease-in-out infinite alternate-reverse; }
+    .cat-leg-bl { transform-origin: 136px 96px; animation: strideBack 0.35s ease-in-out infinite alternate-reverse; }
+    .cat-leg-br { transform-origin: 145px 96px; animation: strideBack 0.35s ease-in-out infinite alternate; }
 
-    @keyframes legStride {
-      0% { transform: rotate(-18deg); }
-      100% { transform: rotate(18deg); }
+    @keyframes strideFront {
+      0% { transform: rotate(-22deg); }
+      100% { transform: rotate(24deg); }
+    }
+    @keyframes strideBack {
+      0% { transform: rotate(-20deg); }
+      100% { transform: rotate(22deg); }
+    }
+
+    /* Fluid Tail Sway */
+    .cat-tail-svg {
+      transform-origin: 155px 72px;
+      animation: tailFluid 0.7s ease-in-out infinite alternate;
+    }
+    @keyframes tailFluid {
+      0% { transform: rotate(-8deg); }
+      100% { transform: rotate(12deg); }
     }
 
     .scratch-mark {
@@ -425,20 +341,28 @@
 <!-- Cat Destruction Overlay -->
 <div id="catOverlay">
   <div class="walking-cat" id="walkingCat">
-    <div class="geo-cat">
-      <div class="cat-ear-left"></div>
-      <div class="cat-ear-right"></div>
-      <div class="cat-head">
-        <div class="cat-eye-left"></div>
-        <div class="cat-eye-right"></div>
-        <div class="cat-nose"></div>
-      </div>
-      <div class="cat-body">
-        <div class="cat-leg-front"></div>
-        <div class="cat-leg-back"></div>
-      </div>
-      <div class="cat-tail"></div>
-    </div>
+    <svg class="vector-cat-wrapper" viewBox="0 0 220 150" xmlns="http://www.w3.org/2000/svg">
+      <g opacity="0.75">
+        <path class="cat-leg-fr" d="M 76 96 L 73 122 Q 73 136 66 138 L 60 138 Q 58 134 64 132 L 68 96 Z" fill="var(--shape-purple)" />
+        <path class="cat-leg-br" d="M 145 94 L 154 114 L 148 135 Q 146 139 140 139 L 136 139 Q 135 135 141 133 L 144 114 L 136 94 Z" fill="var(--shape-purple)" />
+      </g>
+      <path class="cat-tail-svg" d="M 153 73 C 178 68, 198 45, 192 24 C 188 12, 176 14, 179 25 C 182 37, 168 56, 150 64 Z" fill="var(--shape-purple)" />
+      <path d="M 55 62 C 62 56, 75 62, 95 62 C 118 62, 138 56, 152 65 C 160 71, 158 88, 148 96 C 132 103, 102 100, 78 99 C 62 98, 52 84, 55 62 Z" fill="var(--shape-purple)" />
+      <path class="cat-leg-fl" d="M 68 96 L 65 123 Q 65 137 58 139 L 52 139 Q 50 135 56 133 L 60 96 Z" fill="var(--shape-purple)" />
+      <path class="cat-leg-bl" d="M 136 94 L 146 115 L 140 136 Q 138 140 132 140 L 128 140 Q 127 136 133 134 L 136 115 L 127 94 Z" fill="var(--shape-purple)" />
+      <g>
+        <polygon points="44,36 48,14 60,32" fill="var(--shape-pink)" opacity="0.8" />
+        <path d="M 32 45 C 32 33, 46 28, 58 33 C 68 38, 70 52, 62 62 C 53 68, 38 66, 30 60 C 23 58, 20 53, 22 49 C 24 46, 29 46, 32 45 Z" fill="var(--shape-pink)" />
+        <polygon points="49,35 56,12 66,34" fill="var(--shape-pink)" />
+        <polygon points="52,33 56,18 62,33" fill="var(--panel-bg)" opacity="0.45" />
+        <ellipse cx="37" cy="45" rx="4.2" ry="2.6" transform="rotate(-12 37 45)" fill="var(--panel-bg)" />
+        <circle cx="36" cy="45" r="1.4" fill="var(--shape-purple)" />
+        <polygon points="21,49 25,49 23,52" fill="var(--panel-bg)" />
+        <line x1="25" y1="53" x2="8" y2="50" stroke="var(--panel-bg)" stroke-width="1.2" stroke-linecap="round" opacity="0.85" />
+        <line x1="25" y1="55" x2="7" y2="56" stroke="var(--panel-bg)" stroke-width="1.2" stroke-linecap="round" opacity="0.85" />
+        <line x1="26" y1="57" x2="10" y2="62" stroke="var(--panel-bg)" stroke-width="1.2" stroke-linecap="round" opacity="0.85" />
+      </g>
+    </svg>
   </div>
 </div>
 
@@ -913,7 +837,6 @@
     const workspacePanels = document.querySelectorAll('.panel');
 
     setTimeout(() => {
-      // Spawn scratch marks
       for (let i = 0; i < 3; i++) {
         const scratch = document.createElement('div');
         scratch.className = 'scratch-mark';
@@ -934,20 +857,28 @@
       overlay.style.display = 'none';
       overlay.innerHTML = `
         <div class="walking-cat" id="walkingCat">
-          <div class="geo-cat">
-            <div class="cat-ear-left"></div>
-            <div class="cat-ear-right"></div>
-            <div class="cat-head">
-              <div class="cat-eye-left"></div>
-              <div class="cat-eye-right"></div>
-              <div class="cat-nose"></div>
-            </div>
-            <div class="cat-body">
-              <div class="cat-leg-front"></div>
-              <div class="cat-leg-back"></div>
-            </div>
-            <div class="cat-tail"></div>
-          </div>
+          <svg class="vector-cat-wrapper" viewBox="0 0 220 150" xmlns="http://www.w3.org/2000/svg">
+            <g opacity="0.75">
+              <path class="cat-leg-fr" d="M 76 96 L 73 122 Q 73 136 66 138 L 60 138 Q 58 134 64 132 L 68 96 Z" fill="var(--shape-purple)" />
+              <path class="cat-leg-br" d="M 145 94 L 154 114 L 148 135 Q 146 139 140 139 L 136 139 Q 135 135 141 133 L 144 114 L 136 94 Z" fill="var(--shape-purple)" />
+            </g>
+            <path class="cat-tail-svg" d="M 153 73 C 178 68, 198 45, 192 24 C 188 12, 176 14, 179 25 C 182 37, 168 56, 150 64 Z" fill="var(--shape-purple)" />
+            <path d="M 55 62 C 62 56, 75 62, 95 62 C 118 62, 138 56, 152 65 C 160 71, 158 88, 148 96 C 132 103, 102 100, 78 99 C 62 98, 52 84, 55 62 Z" fill="var(--shape-purple)" />
+            <path class="cat-leg-fl" d="M 68 96 L 65 123 Q 65 137 58 139 L 52 139 Q 50 135 56 133 L 60 96 Z" fill="var(--shape-purple)" />
+            <path class="cat-leg-bl" d="M 136 94 L 146 115 L 140 136 Q 138 140 132 140 L 128 140 Q 127 136 133 134 L 136 115 L 127 94 Z" fill="var(--shape-purple)" />
+            <g>
+              <polygon points="44,36 48,14 60,32" fill="var(--shape-pink)" opacity="0.8" />
+              <path d="M 32 45 C 32 33, 46 28, 58 33 C 68 38, 70 52, 62 62 C 53 68, 38 66, 30 60 C 23 58, 20 53, 22 49 C 24 46, 29 46, 32 45 Z" fill="var(--shape-pink)" />
+              <polygon points="49,35 56,12 66,34" fill="var(--shape-pink)" />
+              <polygon points="52,33 56,18 62,33" fill="var(--panel-bg)" opacity="0.45" />
+              <ellipse cx="37" cy="45" rx="4.2" ry="2.6" transform="rotate(-12 37 45)" fill="var(--panel-bg)" />
+              <circle cx="36" cy="45" r="1.4" fill="var(--shape-purple)" />
+              <polygon points="21,49 25,49 23,52" fill="var(--panel-bg)" />
+              <line x1="25" y1="53" x2="8" y2="50" stroke="var(--panel-bg)" stroke-width="1.2" stroke-linecap="round" opacity="0.85" />
+              <line x1="25" y1="55" x2="7" y2="56" stroke="var(--panel-bg)" stroke-width="1.2" stroke-linecap="round" opacity="0.85" />
+              <line x1="26" y1="57" x2="10" y2="62" stroke="var(--panel-bg)" stroke-width="1.2" stroke-linecap="round" opacity="0.85" />
+            </g>
+          </svg>
         </div>
       `;
       
@@ -956,7 +887,7 @@
         panel.style.filter = 'none';
       });
 
-      alert("🐾 Disaster! The geometric cat completely wrecked this chat session. Forcing a fresh workspace!");
+      alert("🐾 Disaster! The vector cat completely wrecked this chat session. Forcing a fresh workspace!");
       createNewSession(false);
     }, 3300);
   }
