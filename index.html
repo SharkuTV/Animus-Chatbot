@@ -189,7 +189,7 @@
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
     }
 
-    /* --- REALISTIC VECTOR CAT & DESTRUCTION EASTER EGG --- */
+    /* --- REALISTIC VECTOR CAT & BROKEN GLASS SHATTER --- */
     #catOverlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -200,7 +200,6 @@
       overflow: hidden;
     }
 
-    /* Walking & Turning Animation */
     .walking-cat {
       position: absolute;
       bottom: 25px;
@@ -212,7 +211,7 @@
       25% { transform: scaleX(-1) translateY(0); }
       37% { transform: scaleX(-1) translateY(-4px); }
       48% { left: 45vw; transform: scaleX(-1) translateY(0); }
-      52% { left: 45vw; transform: scaleX(1) translateY(-8px) rotate(-4deg); } /* Turn around */
+      52% { left: 45vw; transform: scaleX(1) translateY(-8px) rotate(-4deg); }
       56% { left: 45vw; transform: scaleX(1) translateY(0) rotate(0deg); }
       70% { transform: scaleX(1) translateY(-4px); }
       85% { transform: scaleX(1) translateY(0); }
@@ -225,7 +224,6 @@
       filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
     }
 
-    /* Leg Strides */
     .cat-leg-fl { transform-origin: 68px 98px; animation: strideFront 0.35s ease-in-out infinite alternate; }
     .cat-leg-fr { transform-origin: 76px 98px; animation: strideFront 0.35s ease-in-out infinite alternate-reverse; }
     .cat-leg-bl { transform-origin: 136px 96px; animation: strideBack 0.35s ease-in-out infinite alternate-reverse; }
@@ -240,7 +238,6 @@
       100% { transform: rotate(22deg); }
     }
 
-    /* Fluid Tail Sway */
     .cat-tail-svg {
       transform-origin: 155px 72px;
       animation: tailFluid 0.7s ease-in-out infinite alternate;
@@ -257,10 +254,46 @@
       width: 0;
       box-shadow: 0 0 12px #ff2a75;
       animation: scratchAnim 0.45s forwards;
+      z-index: 10001;
     }
     @keyframes scratchAnim {
       0% { width: 0; opacity: 1; }
       100% { width: 220px; opacity: 0; }
+    }
+
+    /* Shattered Glass Effect */
+    .shards-container {
+      position: absolute;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 10000;
+      overflow: hidden;
+    }
+    .glass-shard {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.3);
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      opacity: 0;
+      animation: shatterFly 0.8s ease-out forwards;
+    }
+    @keyframes shatterFly {
+      0% { transform: scale(0.2) translate(0, 0) rotate(0deg); opacity: 1; }
+      100% { transform: scale(1.2) translate(var(--tx), var(--ty)) rotate(var(--rot)); opacity: 0; }
+    }
+    .shattered-panel {
+      position: relative;
+    }
+    .shattered-panel::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%, rgba(255,255,255,0.1) 100%);
+      pointer-events: none;
+      clip-path: polygon(10% 0%, 40% 15%, 85% 5%, 100% 40%, 90% 85%, 50% 100%, 15% 90%, 0% 50%);
+      border: 1px dashed rgba(255, 255, 255, 0.6);
+      z-index: 50;
     }
   </style>
 </head>
@@ -837,6 +870,7 @@
     const workspacePanels = document.querySelectorAll('.panel');
 
     setTimeout(() => {
+      // Spawn scratch marks
       for (let i = 0; i < 3; i++) {
         const scratch = document.createElement('div');
         scratch.className = 'scratch-mark';
@@ -846,7 +880,26 @@
         overlay.appendChild(scratch);
       }
 
+      // Generate glass shards
+      const shardsContainer = document.createElement('div');
+      shardsContainer.className = 'shards-container';
+      overlay.appendChild(shardsContainer);
+
+      for (let i = 0; i < 25; i++) {
+        const shard = document.createElement('div');
+        shard.className = 'glass-shard';
+        shard.style.top = (30 + Math.random() * 40) + 'vh';
+        shard.style.left = (30 + Math.random() * 40) + 'vw';
+        shard.style.width = (20 + Math.random() * 50) + 'px';
+        shard.style.height = (20 + Math.random() * 50) + 'px';
+        shard.style.setProperty('--tx', (Math.random() * 400 - 200) + 'px');
+        shard.style.setProperty('--ty', (Math.random() * 400 - 200) + 'px');
+        shard.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+        shardsContainer.appendChild(shard);
+      }
+
       workspacePanels.forEach(panel => {
+        panel.classList.add('shattered-panel');
         panel.style.transition = 'transform 0.3s ease, filter 0.3s ease';
         panel.style.transform = 'translate(10px, -10px) rotate(1deg)';
         panel.style.filter = 'grayscale(0.8)';
@@ -883,11 +936,12 @@
       `;
       
       workspacePanels.forEach(panel => {
+        panel.classList.remove('shattered-panel');
         panel.style.transform = 'none';
         panel.style.filter = 'none';
       });
 
-      alert("🐾 Disaster! The vector cat completely wrecked this chat session. Forcing a fresh workspace!");
+      alert("🐾 Disaster! The vector cat completely shattered this workspace session. Forcing a fresh chat!");
       createNewSession(false);
     }, 3300);
   }
